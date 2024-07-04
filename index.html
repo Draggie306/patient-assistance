@@ -11,7 +11,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Load main interactive components from the assets folder. -->
-        <script src="assets/socketry.js"></script>
+        <script src="assets/main.js" defer></script>
+        <script src="assets/socketry.js" defer></script>
         <script src="assets/notifications.js"></script>
         <link href="assets/style.css" rel="stylesheet" type="text/css">
     </head>
@@ -26,8 +27,9 @@
         <button id="altButton" class="buttons sidebutton">OTHER</button>
 
         <input type="text" id="txtBox" placeholder="Send a custom message"/>
-
+        <br>
+        <input type="text" id="initwsURL" placeholder="Enter WebSockets url here (will disappear once connected)"/>
     </body>
 
-    <script src="assets/main.js"></script>
+    
 </html>
