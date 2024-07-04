@@ -4,18 +4,46 @@ html {
     border-radius: 3%;
 }
 
-#mainHelpButton { /* Thanks to https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_round_buttons */
-    background-color: #04AA6D; /* Green */
+
+/* Main generic class for all buttons to inherit */
+.buttons {
+    /* flexbox */
+    width:100px;
+    height:100px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+
+
+    /* generic styles */
     border: none;
-    color: white;
-    padding: 100px;
+    display: flex inline-block;
     text-align: center;
     text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
+    color: white;
     cursor: pointer;
+    background-color: #3979f0;
 }
 
-.button5 {border-radius: 50%;}
 
+/* Individual buttons custom look */
+
+#mainHelpButton { /* Thanks to https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_round_buttons */
+    background-color: #04AA6D; /* Green */
+    font-size: 16px;
+    width: 20em;
+    height: 20em;
+}
+
+#hugButton {
+    background-color: #3979f0;
+}
+
+
+.sidebutton {
+    font-size: 16px;
+    margin: 4px 2px;
+    margin-left: 10%;
+    margin-right: 10%;
+}
