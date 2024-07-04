@@ -1,10 +1,20 @@
 console.log("Socketry (not sorcery) script loaded.");
 
+var statusTextP = document.getElementById("defaultHiddenStatusText");
 var socketStatus = null;
+
+function displayLogAndAlert(message, shouldAlertToo) {
+    statusTextP.innerHTML = message;
+    console.log(message);
+
+    if (shouldAlertToo) {
+        window.alert(message)
+    }
+}
 
 try {
     // Create WebSocket connection.
-    console.log("Creating WebSocket connection...");
+    displayLogAndAlert("Creating socket connection...", false);
 
     var wsUrl = getPreviouslyConnectedWsURL();
 
@@ -12,23 +22,26 @@ try {
     
     // error if the connection is not established
     socket.addEventListener("error", (event) => {
-        console.error("Error in socket connection.");
-        notifyMe("Error in socket connection.");
+        console.error(event)
+        displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}`, true);
         socketStatus = 0;
         throw new Error("Error in socket connection.");
     });
 
     // ONLY IF the connection is established:
     socket.addEventListener("open", (event) => {
-        console.log("Connection opened successfully");
+        displayLogAndAlert("Connection opened successfully", false);
         socketStatus = 1;
         socket.send("Hello Server!");
         console.log("Message sent to server.");
     });
 
+
+    // Listen for messages - this will be for the recipient side.
     socket.addEventListener("message", (event) => {
-    console.log("Message from server: ", event.data);
+        console.log("Message from server: ", event.data);
     });
+
 } catch (error) {
     console.error(`Error in socketry script: error ${error}`);
     window.alert(`Error in socketry script was ${error}`);
@@ -39,10 +52,8 @@ function sendSocketMessage(message) {
     if (socketStatus === 1) {
         socket.send(message);
     } if (socketStatus === 0) {
-        console.error(`The socket failed to connect to ${wsUrl}`);
-        window.alert(`The socket failed to connect to ${wsUrl}`);
+        displayLogAndAlert(`The socket failed to connect to ${wsUrl}`, true);
     } else {
-        console.error("The socket is being created, please wait a moment.");
-        window.alert("The socket is being created, please wait a moment.");
+        displayLogAndAlert("The socket is being created, please wait a moment.", true);
     }
 }
