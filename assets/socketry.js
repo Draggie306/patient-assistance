@@ -1,21 +1,22 @@
 console.log("Socketry (not sorcery) script loaded.");
 
 var statusTextP = document.getElementById("defaultHiddenStatusText");
-var socketStatus = null;
+let socketStatus = null;
 var socket = null;
 
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
-    console.log(message);
+    log(message);
 
     if (shouldAlertToo) {
         window.alert(message)
     }
 }
 
+
 function onConnectionEstablished() {
     // change buttons to active and not greyed out. 
-    console.log("Received connection established call to activate buttons")
+    log("Received connection established call to activate buttons")
 
     var sideButtons = document.getElementsByClassName("sidebutton");
     for (var i = 0; i < sideButtons.length; i++) {
@@ -27,41 +28,46 @@ function onConnectionEstablished() {
 }
 
 // initialise the first socket connection
-try {
-    // Create WebSocket connection.
-    displayLogAndAlert("Creating socket connection...", false);
+function connectToServer() {
+    try {
+        // Create WebSocket connection.
+        displayLogAndAlert("Creating socket connection...", false);
 
-    var wsUrl = getPreviouslyConnectedWsURL();
+        var wsUrl = getPreviouslyConnectedWsURL();
 
-    socket = new WebSocket(wsUrl);
-    
-    // error if the connection is not established
-    socket.addEventListener("error", (event) => {
-        console.error(event)
-        displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}`, true);
-        socketStatus = 0;
-        throw new Error("Error in socket connection.");
-    });
+        socket = new WebSocket(wsUrl);
+        
+        // error if the connection is not established
+        socket.addEventListener("error", (event) => {
+            console.error(event)
+            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}`, true);
+            socketStatus = 0;
+            console.debug("Socket status is 0");
+            throw new Error("Error in socket connection.");
+        });
 
-    // ONLY IF the connection is established:
-    socket.addEventListener("open", (event) => {
-        displayLogAndAlert("Connection opened successfully", false);
-        onConnectionEstablished();
-        socketStatus = 1;
-        socket.send("Hello Server!");
-        console.log("Message sent to server.");
-    });
+        // ONLY IF the connection is established:
+        socket.addEventListener("open", (event) => {
+            displayLogAndAlert("[connect/ELOpen] Connection opened successfully", false);
+            onConnectionEstablished();
+            socketStatus = 1;
+            log("Set socket status to 1");
+            socket.send("Hello, server!");
+            log("Message sent to server.");
+        });
 
 
-    // Listen for messages - this will be for the recipient side.
-    socket.addEventListener("message", (event) => {
-        console.log("Message from server: ", event.data);
-    });
+        // Listen for messages - this will be for the recipient side.
+        socket.addEventListener("message", (event) => {
+            log("Message from server: ", event.data);
+        });
 
-} catch (error) {
-    console.error(`Error in socketry script: error ${error}`);
-    window.alert(`Error in socketry script was ${error}`);
-    var socketStatus = 0;
+    } catch (error) {
+        log(`Error in socketry script: error ${error}`);
+        window.alert(`Error in socketry script was ${error}`);
+        var socketStatus = 0;
+        log("[connect] Socket status is 0");
+    }
 }
 
 
@@ -85,3 +91,5 @@ function sendHelpMessage() {
         displayLogAndAlert(`Error in sending help message: ${error}`, true);
     }
 }
+
+connectToServer();
