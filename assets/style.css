@@ -23,23 +23,24 @@ html {
     text-decoration: none;
     color: white;
     cursor: pointer;
-    background-color: #3979f0;
+    /* background-color: #3979f0; */
 }
 
 
 /* Individual buttons custom look */
 
 #mainHelpButton { /* Thanks to https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_round_buttons */
-    background-color: #04AA6D; /* Green */
+    /* background-color: #04AA6D; */
     font-size: 16px;
     width: 20em;
     height: 20em;
 }
 
+/*
 #hugButton {
     background-color: #3979f0;
 }
-
+*/
 
 .sidebutton {
     font-size: 16px;
