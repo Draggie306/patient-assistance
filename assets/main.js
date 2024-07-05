@@ -4,7 +4,7 @@ console.log("Hello, mum!");
 // txtBox contains the content of the custom message to be sent
 // servURL contains the websocket URL and is hidden once the connection is established
 
-const defaultWsURL = "ws://localhost:8080"; // should be the pi but for now it's LH
+const defaultWsURL = "ws://192.168.1.68:8001"; // Default to my own local network RPi hosting the server
 
 // Main button! The one right in the centre of the screem
 var mainButton = document.getElementById("mainHelpButton");
