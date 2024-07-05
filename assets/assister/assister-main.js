@@ -10,18 +10,6 @@ console.log("Hello, mum!");
 
 const defaultWsURL = "ws://192.168.1.68:8001"; // Default to my own local network RPi hosting the server
 
-
-// Button element IDs are: mainHelpButton, hugButton, stairsButton, waterButton, altButton
-// txtBox contains the content of the custom message to be sent
-// servURL contains the websocket URL and is hidden once the connection is established
-
-
-// Main button! The one right in the centre of the screem
-var mainButton = document.getElementById("mainHelpButton");
-var msgBoxForWsURL = document.getElementById("initwsURL");
-var statusTextP = document.getElementById("defaultHiddenStatusText");
-
-
 function log(message, level = 1) {
     if (level == 1) {
         console.log(`%c[${Date.now()}] ${message}`, "color: #8a058f; font-size: 1.2em; background-color: #000000; padding: 3px; border-radius: 2px;");
@@ -65,16 +53,3 @@ function handleChangedWsURL(type) {
         return defaultWsURL;
     }
 }
-
-
-// assign events
-
-mainButton.addEventListener("click", function() {
-    console.log(`The main button has been clicked at ${new Date()}`);
-    sendSocketMessage("mainButton");
-})
-
-
-msgBoxForWsURL.addEventListener("change", function() {
-    handleChangedWsURL(1);
-})

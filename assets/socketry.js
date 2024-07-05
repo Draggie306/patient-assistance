@@ -1,8 +1,13 @@
 console.log("Socketry (not sorcery) script loaded.");
 
+
+let clientID = new Date().getTime();
+let userAgent = navigator.userAgent;
 var statusTextP = document.getElementById("defaultHiddenStatusText");
 let socketStatus = null;
-var socket = null;
+let socket = null;
+
+
 
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
@@ -13,6 +18,17 @@ function displayLogAndAlert(message, shouldAlertToo) {
     }
 }
 
+
+// Use json for websocket messages.
+function constructJSON(message) {
+    return JSON.stringify(
+        {
+            "clientID": clientID,
+            "userAgent": userAgent,
+            "message": message
+        }
+    );
+}
 
 function onConnectionEstablished() {
     // change buttons to active and not greyed out. 
@@ -52,10 +68,9 @@ function connectToServer() {
             onConnectionEstablished();
             socketStatus = 1;
             log("Set socket status to 1");
-            socket.send("Hello, server!");
+            socket.send(constructJSON("Hello, server!"));
             log("Message sent to server.");
-        });
-
+        }); 
 
         // Listen for messages - this will be for the recipient side.
         socket.addEventListener("message", (event) => {
@@ -65,7 +80,7 @@ function connectToServer() {
     } catch (error) {
         log(`Error in socketry script: error ${error}`);
         window.alert(`Error in socketry script was ${error}`);
-        var socketStatus = 0;
+        socketStatus = 0;
         log("[connect] Socket status is 0");
     }
 }
@@ -75,10 +90,11 @@ function connectToServer() {
 function sendSocketMessage(message) {
     console.log(`socketStatus is ${socketStatus}`)
     if (socketStatus == 1) {
-        socket.send(message);
+        socket.send(constructJSON(message));
     } else if (socketStatus == 0) {
         displayLogAndAlert(`The socket failed to connect to ${wsUrl}`, true);
     } else {
+        console.log(`socket status is ${socketStatus}, so waiting for connection to be established.`);
         displayLogAndAlert("The socket is being created, please wait a moment.", true);
     }
 }

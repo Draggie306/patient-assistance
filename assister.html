@@ -11,25 +11,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Load main interactive components from the assets folder. -->
-        <script src="assets/main.js" defer></script>
-        <script src="assets/socketry.js" defer></script>
-        <script src="assets/notifications.js"></script>
+        <script src="assets/assister/assister-main.js" defer></script>
+        <script src="assets/assister/assister-sockets.js" defer></script>
         <link href="assets/style.css" rel="stylesheet" type="text/css">
     </head>
 
     <!-- Now to the juicy stuff. -->
     <body>
-        <p><strong>Patient Assistance v5</strong></p>
-        <button id="hugButton" class="buttons sidebutton">HUG</button>
-        <button id="stairsButton" class="buttons sidebutton">STAIRS</button>
-        <button id="mainHelpButton" class="buttons centrebutton">HELP!</button>
-        <button id="waterButton" class="buttons sidebutton">WATER</button>
-        <button id="altButton" class="buttons sidebutton">OTHER</button>
+        <p><strong>Patient Assistance v5 - <i>ASSISTER VIEW</i></strong></p>
 
-        <input type="text" id="txtBox" placeholder="Send a custom message"/>
-        <br>
         <input type="text" id="initwsURL" placeholder="Enter WebSockets url here (will disappear once connected)"/>
-        <p id = "defaultHiddenStatusText">[status will diaplsay here.]</p>
+        <p id = "defaultHiddenStatusText">[status will display here.]</p>
     </body>
 
     
