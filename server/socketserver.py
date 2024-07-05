@@ -1,10 +1,30 @@
 import websockets
 import asyncio
+import datetime
+import time
+import typing
+import json
+
+patients = {}
+assisters = {}
 
 
-async def handler(websocket):
+async def handler(websocket) -> None:
     while True:
         message = await websocket.recv()
+
+        if message == "Hello, server!":
+            print("Matched handshake message from a patient")
+            await websocket.send("success")
+            await websocket.send(f"Current time: {datetime.datetime.now()}")
+            patients[websocket] = time.time()
+
+        if message == "assister":
+            print("Matched handshake message from an assister")
+            await websocket.send("success")
+            await websocket.send(f"Current time: {datetime.datetime.now()}")
+            assisters[websocket] = time.time()
+
         print(message)
 
 
@@ -13,9 +33,38 @@ async def main():
         await asyncio.Future()  # run forever
 
 
+async def relay_message_to_client(msg_type: str, message: typing.Optional[str]) -> None:
+    """
+    Transforms and sends a message received by one patient to all registered assisters.
+    """
+    print("Relaying message to all assisters")
+
+    for patient in patients:
+        await patient.send(json.dumps({"type": msg_type, "message": message})) # do minimal server processing, this is decoded by the client
+        print(f"Relayed message to patient {patient}; sent {message}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     asyncio.run(main())
-
 
 
 
