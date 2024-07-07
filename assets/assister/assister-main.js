@@ -8,6 +8,8 @@ console.log("Hello, mum!");
     action and be aware that it will need some tweaking! :)
 */
 
+var msgBoxForWsURL = document.getElementById("initwsURL");
+var pPatientList = document.getElementById("patientList");
 const defaultWsURL = "ws://192.168.1.68:8001"; // Default to my own local network RPi hosting the server
 
 function log(message, level = 1) {
@@ -27,7 +29,7 @@ function getPreviouslyConnectedWsURL() {
         // then set isPreviouslyConnected to true
         isPreviouslyConnected = true;
         msgBoxForWsURL.style.display = "none";
-        const x = `ws://${localStorage.getItem("wsURL")}`
+        const x = `${localStorage.getItem("wsURL")}`
         return x;
     } else {
         console.log("[getPrevConn] No previous connection found, returning default wsURL");
@@ -53,3 +55,6 @@ function handleChangedWsURL(type) {
         return defaultWsURL;
     }
 }
+
+// display all patients currently registered on the server once document is loaded
+

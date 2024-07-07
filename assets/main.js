@@ -62,7 +62,7 @@ function handleChangedWsURL(type) {
         msgBoxForWsURL.style.display = "none";
     } else if (type === 3) {
         // Show wsURL input box.
-        msgBoxForWsURL.style.display = "block";
+        msgBoxForWsURL.style.display = "inline";
     } else {
         // clear
         localStorage.removeItem("wsURL");

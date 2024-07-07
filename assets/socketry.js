@@ -89,6 +89,34 @@ function connectToServer() {
         // Listen for messages - this will be for the recipient side.
         socket.addEventListener("message", (event) => {
             log("Message from server: ", event.data);
+
+            // Get just the "message" key's value from the returned JSON
+            let data = JSON.parse(event.data);
+            let message = data.message;
+            let shorthand = data.shorthand;
+
+            // Now, decode the message, and display it.
+            switch (shorthand) { // Using: https://www.w3schools.com/js/js_switch.asp
+                case "assistanceapp.SUCCESS":
+                    let numAssistersReceived = data.numAssisters;
+                    displayLogAndAlert(`The message was broadcasted successfully to ${numAssistersReceived} assister devices.`, true);
+                    break;
+                case "assistanceapp.NO_ASSISTERS":
+                    displayLogAndAlert("No assister devices are currently connected.", true);
+                    break;
+                case "assistanceapp.ERROR_FORWARDING":
+                    displayLogAndAlert("Error whilst forwarding the message to assisters.", true);
+                    break;
+                case "assistanceapp.ERROR_PARSING":
+                    displayLogAndAlert("An error occurred whilst parsing your message. Maybe refresh the page??", true);
+                    break;
+                case "assistanceapp.SERVER_EXCEPTION":
+                    displayLogAndAlert("A generic exception occurred on the server side and your request could not be completed", true); 
+                    break;
+                default:
+                    displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string
+                    break;
+            }
         });
 
     } catch (error) {
