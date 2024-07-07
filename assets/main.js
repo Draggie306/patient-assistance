@@ -39,7 +39,7 @@ function getPreviouslyConnectedWsURL() {
         // then set isPreviouslyConnected to true
         isPreviouslyConnected = true;
         msgBoxForWsURL.style.display = "none";
-        const x = `ws://${localStorage.getItem("wsURL")}`
+        const x = `${localStorage.getItem("wsURL")}`
         return x;
     } else {
         console.log("[getPrevConn] No previous connection found, returning default wsURL");
@@ -48,7 +48,7 @@ function getPreviouslyConnectedWsURL() {
 }
 
 function handleChangedWsURL(type) {
-    if (type === 1) {
+    if (type === 1) { // signifies that the user has changed the wsURL
         console.log(msgBoxForWsURL)
         var newWsURL = msgBoxForWsURL.value;
         localStorage.setItem("wsURL", newWsURL);
@@ -57,6 +57,12 @@ function handleChangedWsURL(type) {
         isPreviouslyConnected = true;
         console.log("Changed wsURL to: " + newWsURL);
         return newWsURL;
+    } else if (type === 2) {
+        // the connection has been established so we can hide the wsURL box
+        msgBoxForWsURL.style.display = "none";
+    } else if (type === 3) {
+        // Show wsURL input box.
+        msgBoxForWsURL.style.display = "block";
     } else {
         // clear
         localStorage.removeItem("wsURL");
@@ -66,6 +72,9 @@ function handleChangedWsURL(type) {
     }
 }
 
+function hideWsURLBox() {
+    msgBoxForWsURL.style.display = "none";
+}
 
 // assign events
 

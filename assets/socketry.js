@@ -1,13 +1,13 @@
 console.log("Socketry (not sorcery) script loaded.");
 
 
-let clientID = new Date().getTime();
+let clientID = new Date().getTime(); // somewhat redundant as server will just use the websocket instance ID
 let userAgent = navigator.userAgent;
 var statusTextP = document.getElementById("defaultHiddenStatusText");
-let socketStatus = null;
+var statusTextT = document.getElementById("hiddenTopText"); // top p element
+let socketStatus = null; // do not assume that the socket is connected
 let socket = null;
-
-
+const defaultWsUrl = "ws://192.168.1.68:8001"; // default but can be changed, just easier for development
 
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
@@ -56,8 +56,15 @@ function connectToServer() {
         // error if the connection is not established
         socket.addEventListener("error", (event) => {
             console.error(event)
-            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}`, true);
+            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}. Please ensure that the accompanying Python websocket handler is running.`, true);
             socketStatus = 0;
+            if (wsUrl === defaultWsUrl) {
+                let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is inthe GitHub repo.";
+                // let t_old = `The default WebSocket URL is being used! If the buttons below are grey, please input the correct server URL and refresh the page.`;
+                statusTextT.innerHTML = t;
+                statusTextT.style.color = "#ff0000";
+                handleChangedWsURL(3); // Show th box to allow user to change wsURL
+            }
             console.debug("Socket status is 0");
             throw new Error("Error in socket connection.");
         });
@@ -70,6 +77,13 @@ function connectToServer() {
             log("Set socket status to 1");
             socket.send(constructJSON("Hello, server!"));
             log("Message sent to server.");
+
+
+            // update LocalStorage with the new wsURL
+            localStorage.setItem("wsURL", wsUrl);
+            localStorage.setItem("isConnected", "true");
+
+            handleChangedWsURL(2);
         }); 
 
         // Listen for messages - this will be for the recipient side.
