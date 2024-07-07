@@ -45,7 +45,7 @@ def build_json_response(shorthand: str, message: str) -> str:
     `message` is the actual message to send to the client.
     """
     response = {
-        "shorthand": shorthand,
+        "shorthand": f"patientassist.{shorthand}",
         "message": message
     }
     return json.dumps(response)
@@ -53,29 +53,39 @@ def build_json_response(shorthand: str, message: str) -> str:
 
 async def handler(websocket) -> None:
     while True:
+        print("Received a message! Attempting to decode")
         message = await websocket.recv()
-        print(message)
 
         # Decode the json into patientID, userAgent, and "message" (the actual message sent by the client)
-        message = json.loads(message)
-        print(message)
+        try:
+            message = json.loads(message)
+            print(message)
+        except json.JSONDecodeError as e:
+            await websocket.send(build_json_response('ERROR_PARSING', f"Error parsing JSON: {e}"))
 
-        patientID = message["patientID"] if "patientID" in message else None
-        clientUserAgent = message["userAgent"]
-        actualMessage = message["message"]
+        try:
+            patientID = message["clientID"]# if hasattr(message, "clientID") else None # None if assister.
+            clientUserAgent = message["userAgent"]
+            actualMessage = message["message"]
+        except KeyError as e:
+            print(f"Required fields not present: {e}")
+            return await websocket.send(build_json_response('ERROR_PARSING', f"Required fields not present: {e}"))
 
 
-        # Handshake message from a patient
+        # If there are no errs, proceed 
+
+
         if actualMessage == "Hello, server!":
             print("Matched handshake message from a patient")
             # await websocket.send("success")
             await websocket.send(build_json_response('SUCCESS', 'handshakeAck'))
+            print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
             registerPatient = await register_patient(websocket, patientID, clientUserAgent)
 
             if registerPatient:
-                await websocket.send("registerSuccess")
+                await websocket.send(build_json_response('SUCCESS', 'registerAck'))
             else:
-                await websocket.send("registerErr")
+                await websocket.send(build_json_response('SERVER_EXCEPTION', 'Error registering patient'))
 
         if actualMessage == "mainButton":
             print("Matched main button press")
@@ -92,7 +102,7 @@ async def handler(websocket) -> None:
             print("Matched request for all patients")
             # await websocket.send(json.dumps(patients))
             currentPatients = await query_patients()
-            await websocket.send(json.dumps(currentPatients))
+            await websocket.send(build_json_response('GETALLPATIENTS_SUCCESS', currentPatients))
 
         if actualMessage == "registerAssister":
             print(f"Matched request to register an assister to patient {patientID}")
@@ -122,7 +132,7 @@ async def send_message(Patient, message: str) -> None:
     pass
 
 
-async def register_patient(websocket, patientID, userAgent) -> None:
+async def register_patient(websocket, patientID, userAgent) -> bool:
     """
     Registers a patient with the server.
     """
@@ -140,13 +150,14 @@ async def query_patients() -> None:
     Incoming call from assister view page to display all patients in the current list, their IDs, UserAgents, and total number of assisters.
     """
     print("Querying all patients")
+    print(f"Patients: {patients}")
+
     patientsList = []
     for patient in patients:
-        patientsList.append({"patientID": patient.patientID, "userAgent": patient.userAgent, "numAssisters": len(patient.joinedAssister)})
+        patientsList.append({"patientID": patients[patient].patientID, "userAgent": patients[patient].userAgent, "numAssisters": len(patients[patient].joinedAssister)})
 
-    print(patientsList)
-    return patientsList
-
+    print(f"Returning list of patients: {patientsList}")
+    return json.dumps(patientsList)
 
 
 async def main():
