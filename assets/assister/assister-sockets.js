@@ -26,6 +26,16 @@ function constructJSON(message) {
     );
 }
 
+
+function decodeJSON(json) {
+    try {
+        return JSON.parse(json);
+    } catch (error) {
+        console.error(`Error in decoding JSON: ${error}`);
+        return null;
+    }
+}
+
 // initialise the first socket connection
 function connectToServer() {
     try {
@@ -51,7 +61,7 @@ function connectToServer() {
             
             socketStatus = 1;
             log("Set socket status to 1");
-            socket.send(constructJSON("Hello, server!"));
+            socket.send(constructJSON("assisterConnected"));
             log("Message sent to server.");
 
             getAllPatients();
@@ -59,10 +69,17 @@ function connectToServer() {
 
         // Listen for messages - this will be for the recipient side.
         socket.addEventListener("message", (event) => {
-            log("Message from server: ", event.data);
-
             // Parse the JSON message
-            var message = JSON.parse(event.data);
+            console.log(event.data)
+
+            // decode the message
+            var decodedMessage = decodeJSON(event.data);
+
+            if (decodedMessage["shorthand"] === "patientassist.GETALLPATIENTS_SUCCESS") {
+                console.log(`Patient list: ${decodedMessage["message"]}`);
+                displayAllPatients(decodeJSON(decodedMessage["message"]));
+            }
+
         });
 
     } catch (error) {
@@ -71,6 +88,16 @@ function connectToServer() {
         socketStatus = 0;
         log("[connect] Socket status is 0");
     }
+}
+
+function displayAllPatients(patients) {
+    // Display all patients in the patient list
+    console.log("Displaying all patients...");
+    console.log(patients);
+    pPatientList.innerHTML = "";
+    patients.forEach(patient => {
+        pPatientList.innerHTML += `<li>${patient.patientID} with ${patient.numAssisters} assisters (${patient.userAgent})</li><br>`;
+    });
 }
 
 
