@@ -1,27 +1,30 @@
 html {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     text-align: center;
+    background-color: #DFCFBE; /* this is seen as one of the best background colors for readability */
 }
 
 
 /* Main generic class for all buttons to inherit */
 .buttons {
     /* flexbox */
-    width:100px;
-    height:100px;
+    width: 100px;
+    height: 100px;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-radius: 50%;
+    border-radius: 50%; /* make it a circle */
 
     /* generic styles */
     border: none;
-    display: flex inline-block;
     text-align: center;
     text-decoration: none;
-    color: white;
+    color: rgb(255, 255, 255);
     cursor: pointer;
-    /* background-color: #3979f0; */
+    margin-right: 6%;
+    margin-left: 6%;
+
+    font-size: 3vw;
 }
 
 #topTwoButtons {
@@ -31,8 +34,32 @@ html {
     align-items: center;
 }
 
+/* attempt media queries for logarithmic spacing */
+@media (max-width: 600px) {
+    #hugButton, #stairsButton, #waterButton, #foodButton {
+        margin-left: 2vw;
+        margin-right: 2vw;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 2000px) {
+    #hugButton, #stairsButton, #waterButton, #foodButton {
+        margin-left: 15vw;
+        margin-right: 15vw;
+    }
+}
+
+/* TODO: at really large screen sizes (desktopp) just put the buttons on the left to the right, and the buttons on the right to the left of the overall div area. */
+@media (min-width: 1201px) {
+    #hugButton, #waterButton {
+        /* set to the right of the div */
+        align-items: flex-end;
+    }
+}
+
+
 #centerButton {
-    size: 40pc;
+    size: 45%;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -50,12 +77,16 @@ html {
 
 #mainHelpButton { /* Thanks to https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_round_buttons */
     /* background-color: #04AA6D; */
-    font-size: 16px;
-    width: calc(50vw - 50px);
-    height: calc(50vw - 50px);
-    min-width: 200px;
-    min-height: 200px;
+    font-size: xx-large;
+    font-weight: bold;
+    font-style: italic;
+    width: calc(220px + 2vw);
+    height: calc(220px + 2vw);
+    min-width: 220px;
+    min-height: 220px;
     border-radius: 50%;
+    border: 2px solid #000000;
+    
 }
 
 /*
@@ -66,6 +97,7 @@ html {
 
 .sidebutton {
     font-size: 16px;
+    font-weight: bold;
     /*margin: 4px 2px;
     margin-left: 10%;
     margin-right: 10%; */
@@ -74,3 +106,52 @@ html {
 #nothing {
     color: #e72a11;
 }
+
+#patientassiststatus {
+    text-align: center;
+    align-items: center;
+    background-color: rgb(202, 202, 202);
+    /* Max width calc is logarithmic on larger screens, e.g. as screen width increases, the text box width increases marginally more. */
+    height: 6vh;
+    vertical-align: middle;
+}
+
+#defaultHiddenStatusText {
+    text-align: center;
+    vertical-align: middle;
+    height: 6vh;
+}
+
+
+#txtBox, #patientIdInput {
+    margin-top: 10vh; /* Margin is above the text box, whereas padding is part of it! Learnt the hard way! */
+    width: 80%;
+    height: 2em;
+    font-size: medium;
+    text-align: center;
+    border: 1px solid #e72a11;
+    border-radius: 10px;
+    background-color: #f0f0f0;
+    
+    /* Max width calc is logarithmic on larger screens, e.g. as screen width increases, the text box width increases marginally more. */
+    max-width: calc(240px + 12vw);
+    min-width: 240px;
+}
+
+/* Tried to implement a rainbow border, but it's not working well. */
+#DELtxtBox:focus {
+    border-radius: 15px;
+    background-color: #f0f0f000;
+    border: 5px solid transparent;
+    border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet, red) 1;
+    border-image-slice: 1;
+    animation: rainbowMovingBorder 5s infinite linear; /* apply the animation */
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5); /* slight shadow */
+    
+}
+
+@keyframes rainbowMovingBorder {
+    0% { border-image: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet, red) 1; }
+  100% { border-image: linear-gradient(to right, violet, indigo, blue, green, yellow, orange, violet) 1; }
+}
+

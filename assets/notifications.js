@@ -2,7 +2,11 @@
 
 
 try {
-  notifyMe("Initialised notifications!")
+  if ("stopStartupNotis" in localStorage) {
+    console.log("Notifications are disabled")
+  } else {
+    notifyMe("Initialised notifications! 🎉 (if you want me to shut up, please add \"stopStartupNotis\" into a localstorage key")
+  }
 } catch (error) {
   console.error(error)
 }
