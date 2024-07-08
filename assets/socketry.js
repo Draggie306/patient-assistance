@@ -19,7 +19,7 @@ function displayLogAndAlert(message, shouldAlertToo) {
         // play sound from assets/sounds/error.mp3
         errSound.play();
 
-        window.alert(message)
+        window.alert(`error: ${message}`);
     }
 }
 
@@ -102,24 +102,35 @@ function connectToServer() {
 
             // Now, decode the message, and display it.
             switch (shorthand) { // Using: https://www.w3schools.com/js/js_switch.asp
-                case "assistanceapp.SUCCESS":
-                    let numAssistersReceived = data.numAssisters;
-                    displayLogAndAlert(`The message was broadcasted successfully to ${numAssistersReceived} assister devices.`, true);
+                case "patientassist.SUCCESS": // generic success
+                    if (message === "patientRegisterAck") {
+                        displayLogAndAlert("Registered as patient successfully.", false);
+                    } else if (message === "handshakeAck") {
+                        displayLogAndAlert("Handshake successful.", false);
+                    } else {
+                        displayLogAndAlert(`Success: ${message}`, false);
+                    }
                     break;
-                case "assistanceapp.NO_ASSISTERS":
+                case "patientassist.NO_ASSISTERS":
                     displayLogAndAlert("No assister devices are currently connected.", true);
                     break;
-                case "assistanceapp.ERROR_FORWARDING":
+                case "patientassist.ERROR_FORWARDING":
                     displayLogAndAlert("Error whilst forwarding the message to assisters.", true);
                     break;
-                case "assistanceapp.ERROR_PARSING":
+                case "patientassist.ERROR_PARSING":
                     displayLogAndAlert("An error occurred whilst parsing your message. Maybe refresh the page??", true);
                     break;
-                case "assistanceapp.SERVER_EXCEPTION":
+                case "patientassist.SERVER_EXCEPTION":
                     displayLogAndAlert("A generic exception occurred on the server side and your request could not be completed", true); 
                     break;
-                case "assistanceapp.RELAY_NO_ASSISTERS":
+                case "patientassist.RELAY_NO_ASSISTERS":
                     displayLogAndAlert("No assister devices are currently connected!", true);
+                    break;
+                case "patientassist.patientRegisterAck":
+                    displayLogAndAlert("Patient registered successfully.", false);
+                    break;
+                case "patientassist.FORWARDING_SUCCESS":
+                    displayLogAndAlert(message, true);
                     break;
                 default:
                     displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string

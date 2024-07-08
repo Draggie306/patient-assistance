@@ -5,6 +5,7 @@ var socket = null;
 let statusTextP = document.getElementById("defaultHiddenStatusText");
 var clientID = new Date().getTime();
 var userAgent = navigator.userAgent;
+var ding = new Audio("../assets/sounds/ding.mp3");
 
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
@@ -37,7 +38,7 @@ function decodeJSON(json) {
 }
 
 // initialise the first socket connection
-function connectToServer() {
+async function connectToServer() {
     try {
         // Create WebSocket connection.
         displayLogAndAlert("Creating socket connection...", false);
@@ -61,7 +62,7 @@ function connectToServer() {
             
             socketStatus = 1;
             log("Set socket status to 1");
-            socket.send(constructJSON("assisterConnected"));
+            sendAsync(constructJSON("assisterConnected"));
             log("Message sent to server.");
 
             getAllPatients();
@@ -75,15 +76,34 @@ function connectToServer() {
             // decode the message
             var decodedMessage = decodeJSON(event.data);
 
-            if (decodedMessage["shorthand"] === "patientassist.GETALLPATIENTS_SUCCESS") {
+            var shorthandResponse = decodedMessage["shorthand"];
+            if (shorthandResponse === "patientassist.GETALLPATIENTS_SUCCESS") {
                 log("[assister/MESSAGE_GETALLPATIENTS_SUCCESS] Received all patients from server.")
                 displayAllPatients(decodeJSON(decodedMessage["message"]));
-            } else if (decodedMessage["shorthand"] === "patientassist.REGISTERASSISTER_SUCCESS") {
-                log("[assister/MESSAGE_REGISTERASSISTER_SUCCESS] Registered as assister successfully.")
+            } else if (shorthandResponse === "patientassist.ASSISTER_REGISTERED") {
+                log("[assister/ASSISTER_REGISTERED_EVENT] Registered as assister successfully.")
                 window.alert("Registered as assister successfully.");
+                document.getElementById("patientList").innerHTML = "Waiting for patient to send message...";
             }
-        }
-        );
+
+
+            // check for ACTUAL messages from the patient
+
+            if (shorthandResponse === "patientassist.PATIENT_MESSAGE") {
+                log("[assister/PATIENT_MESSAGE] Received message from patient.")
+                window.alert(`Message from patient: ${decodedMessage["message"]}`);
+            } else if (shorthandResponse === "MAIN_BUTTON_PRESSED") {
+                log("[assister/MAIN_BUTTON_PRESSED] Main button pressed by patient.")
+                window.alert("Main button pressed by patient.");
+                ding.play();
+            }
+        });
+
+        socket.addEventListener("close", (event) => {
+            displayLogAndAlert(`Connection closed. Code: ${event.code}, reason: ${event.reason}`, true);
+            socketStatus = 0;
+            console.debug("Socket status is 0");
+        });
 
     } catch (error) {
         log(`Error in socketry script: error ${error}`);
@@ -104,19 +124,31 @@ function displayAllPatients(patients) {
 }
 
 
-function getAllPatients() {
+async function getAllPatients() {
     // Get all patients from the server
     console.log("Retrieving all patients from server dict");
     log(socket)
-    socket.send(constructJSON("getAllPatients"));
+    sendAsync(constructJSON("getAllPatients"));
 }
 
-function registerAsAssister(patientID) {
+async function registerAsAssister(patientID) {
     // Register as an assister for a patient
     log(`Registering as assister for patient ${patientID}`);
-    socket.send(constructJSON(`registerAsAssister;${patientID}`));
+    sendAsync(constructJSON(`registerAsAssister;${patientID}`));
 }
 
-
+async function sendAsync(message) {
+    return new Promise((resolve, reject) => {
+      // Setup response handlers
+      socket.onmessage = (event) => {
+        resolve(event.data);
+      };
+      socket.onerror = (error) => {
+        reject(error);
+      };
+      socket.send(message);
+    });
+  }
+  
 
 connectToServer();
