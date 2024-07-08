@@ -28,7 +28,11 @@ class Patient:
         self.joinedAssister.append(websocket)
 
     async def messageAllAssisters(self, message: str) -> None:
+        if len(self.joinedAssister) == 0:
+            print(f"[debug/patient_object] No assisters found for patient {self.patientID}")
+            return await self.websocket.send(build_json_response("RELAY_NO_ASSISTERS", "No assisters currently available for patient"))
         for assister in assisters:
+            print(f"[debug/patient_object] Sending message to assister {assister.assisterID}")
             await assister.websocket.send(json.dumps({"type": "patientMessage", "message": message}))
 
 
@@ -52,63 +56,94 @@ def build_json_response(shorthand: str, message: str) -> str:
 
 
 async def handler(websocket) -> None:
-    while True:
-        print("Received a message! Attempting to decode")
-        message = await websocket.recv()
+    patientID = None
+    try:
+        async for message in websocket:
+            # while True:
+            print("Received a message! Attempting to decode")
 
-        # Decode the json into patientID, userAgent, and "message" (the actual message sent by the client)
-        try:
-            message = json.loads(message)
-            print(message)
-        except json.JSONDecodeError as e:
-            await websocket.send(build_json_response('ERROR_PARSING', f"Error parsing JSON: {e}"))
+            print(f"Raw message: {message}")
 
-        try:
-            patientID = message["clientID"]# if hasattr(message, "clientID") else None # None if assister.
-            clientUserAgent = message["userAgent"]
-            actualMessage = message["message"]
-        except KeyError as e:
-            print(f"Required fields not present: {e}")
-            return await websocket.send(build_json_response('ERROR_PARSING', f"Required fields not present: {e}"))
+            # Decode the json into patientID, userAgent, and "message" (the actual message sent by the client)
 
-
-        # If there are no errs, proceed 
-
-
-        if actualMessage == "Hello, server!":
-            print("Matched handshake message from a patient")
-            # await websocket.send("success")
-            await websocket.send(build_json_response('SUCCESS', 'handshakeAck'))
-            print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
-            registerPatient = await register_patient(websocket, patientID, clientUserAgent)
-
-            if registerPatient:
-                await websocket.send(build_json_response('SUCCESS', 'registerAck'))
+            # HACK FIX because I have no idea why it is sometimes one and not another
+            if isinstance(message, str):
+                data = json.loads(message)
+            elif isinstance(message, (dict, bytes, bytearray)):
+                data = message
             else:
-                await websocket.send(build_json_response('SERVER_EXCEPTION', 'Error registering patient'))
+                raise TypeError(
+                    "Message must be of type str, bytes, bytearray, or dict"
+                )
 
-        if actualMessage == "mainButton":
-            print("Matched main button press")
-            await relay_message_to_assister("mainButton", "Main button pressed by patient")
+            try:
+                patientID = data[
+                    "clientID"
+                ]  # if hasattr(message, "clientID") else None # None if assister.
+                clientUserAgent = data["userAgent"]
+                actualMessage = data["message"]
+            except KeyError as e:
+                print(f"Required fields not present: {e}")
+                return await websocket.send(
+                    build_json_response(
+                        "ERROR_PARSING", f"Required fields not present: {e}"
+                    )
+                )
 
-        # Now handshake message from an assister
-        if actualMessage == "assister":
-            print("Matched handshake message from an assister")
-            await websocket.send("success")
-            await websocket.send(f"Current time: {datetime.datetime.now()}")
+            # If there are no errs, proceed
 
-        # Display list of all patients on the current list to the assister frontend
-        if actualMessage == "getAllPatients":
-            print("Matched request for all patients")
-            # await websocket.send(json.dumps(patients))
-            currentPatients = await query_patients()
-            await websocket.send(build_json_response('GETALLPATIENTS_SUCCESS', currentPatients))
+            if actualMessage == "Hello, server!":
+                print("Matched handshake message from a patient")
+                # await websocket.send("success")
+                await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
+                print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
+                
+                registerPatient = await register_patient(
+                    websocket, patientID, clientUserAgent
+                )
 
-        if actualMessage == "registerAssister":
-            print(f"Matched request to register an assister to patient {patientID}")
-            patients[patientID].addJoinedAssister(websocket)
+                if registerPatient:
+                    await websocket.send(
+                        build_json_response("SUCCESS", "patientRegisterAck")
+                    )
+                else:
+                    await websocket.send(
+                        build_json_response(
+                            "SERVER_EXCEPTION", "Error registering patient"
+                        )
+                    )
 
-        
+            if actualMessage == "mainButton":
+                print("Matched main button press")
+                await relay_message_to_assister(
+                    "mainButton", "Main button pressed by patient"
+                )
+
+            # Now handshake message from an assister
+            if actualMessage == "assister":
+                print("Matched handshake message from an assister")
+                await websocket.send("success")
+                await websocket.send(f"Current time: {datetime.datetime.now()}")
+
+            # Display list of all patients on the current list to the assister frontend
+            if actualMessage == "getAllPatients":
+                print("Matched request for all patients")
+                # await websocket.send(json.dumps(patients))
+                currentPatients = await query_patients()
+                await websocket.send(
+                    build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
+                )
+
+            if actualMessage == "registerAssister":
+                print(f"Matched request to register an assister to patient {patientID}")
+                patients[patientID].addJoinedAssister(websocket)
+    except websockets.exceptions.ConnectionClosed as e:
+        print(f"Connection closed: {e}")
+        if patientID in patients:
+            print(f"Removing patient {patientID} from patients list")
+            del patients[patientID]
+        else:
+            print(f"Patient {patientID} not found in patients list")
 
 
 async def send_message(Patient, message: str) -> None:
@@ -171,34 +206,14 @@ async def relay_message_to_assister(shorthand: str, message: typing.Optional[str
     """
     print("Relaying message to all assisters")
 
+    print(f"\n[debug] patients: {patients}")
     for patient in patients:
-        await patient.messageAllAssisters(json.dumps({"shorthand": shorthand, "message": message}))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        await patients[patient].messageAllAssisters(message)
 
 
 if __name__ == "__main__":
     print("running!")
     asyncio.run(main())
-
-
 
 
 """
