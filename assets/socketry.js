@@ -11,6 +11,45 @@ const defaultWsUrl = "ws://192.168.1.68:8001"; // default but can be changed, ju
 
 var errSound = new Audio("../assets/sounds/error.mp3");
 
+let specificStatusCodeMappings = {
+    '1000': 'Normal Closure',
+    '1001': 'Going Away',
+    '1002': 'Protocol Error',
+    '1003': 'Unsupported Data',
+    '1004': '(For future)',
+    '1005': 'No Status Received',
+    '1006': 'Abnormal Closure',
+    '1007': 'Invalid frame payload data',
+    '1008': 'Policy Violation',
+    '1009': 'Message too big',
+    '1010': 'Missing Extension',
+    '1011': 'Internal Error',
+    '1012': 'Service Restart',
+    '1013': 'Try Again Later',
+    '1014': 'Bad Gateway',
+    '1015': 'TLS Handshake'
+};
+
+function getStatusCodeString(code) {
+    if (code >= 0 && code <= 999) {
+        return '(Unused)';
+    } else if (code >= 1016) {
+        if (code <= 1999) {
+            return '(For WebSocket standard)';
+        } else if (code <= 2999) {
+            return '(For WebSocket extensions)';
+        } else if (code <= 3999) {
+            return '(For libraries and frameworks)';
+        } else if (code <= 4999) {
+            return '(For applications)';
+        }
+    }
+    if (typeof(specificStatusCodeMappings[code]) !== 'undefined') {
+        return specificStatusCodeMappings[code];
+    }
+    return '(Unknown)';
+}
+
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
     log(message);
@@ -115,7 +154,7 @@ function connectToServer() {
                     displayLogAndAlert("No assister devices are currently connected.", true);
                     break;
                 case "patientassist.ERROR_FORWARDING":
-                    displayLogAndAlert("Error whilst forwarding the message to assisters.", true);
+                    displayLogAndAlert("Error whilst forwarding the message to assisters.", false);
                     break;
                 case "patientassist.ERROR_PARSING":
                     displayLogAndAlert("An error occurred whilst parsing your message. Maybe refresh the page??", true);
@@ -130,7 +169,9 @@ function connectToServer() {
                     displayLogAndAlert("Patient registered successfully.", false);
                     break;
                 case "patientassist.FORWARDING_SUCCESS":
-                    displayLogAndAlert(message, true);
+                    displayLogAndAlert(message, false);
+                    const jsConfetti = new JSConfetti()
+                    jsConfetti.addConfetti()
                     break;
                 default:
                     displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string

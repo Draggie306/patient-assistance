@@ -2,9 +2,9 @@
 
 
 try {
-    notifyMe("Initialised notifications!")
+  notifyMe("Initialised notifications!")
 } catch (error) {
-    console.error(error)
+  console.error(error)
 }
 
 // Below function stolen from "https://developer.mozilla.org/en-US/docs/Web/API/Notification"
