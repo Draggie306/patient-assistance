@@ -5,6 +5,7 @@ import time
 import typing
 import json
 import traceback
+from typing import Optional
 
 patients = {}
 assisters = {}
@@ -34,19 +35,28 @@ class Patient:
             print(f"[debug/patient_object] Error adding assister to patient {self.patientID}: {e}")
             return False
 
-    async def messageAllAssisters(self, message: str) -> None:
+    async def messageAllAssisters(self, message: str, shorthand: Optional[str] = None) -> None:
         print(f"[debug/patient_object] Attempting to message all assisters for patient {self.patientID}")
         if len(self.joinedAssister) == 0:
             print(f"[debug/patient_object] No assisters found for patient {self.patientID}")
             return None
+
+        assistersMessaged = 0
         for assister in self.joinedAssister: # dont use assisters dict, keep it just in the object as defined in the class. #OOP
             try:
                 print(f"[debug/patient_object] Sending message to assister {assister.id}")
-                await assister.send(json.dumps({"type": "patientMessage", "message": message}))
-                return True
+                await assister.send(json.dumps({
+                    "type": "patientMessage",
+                    "message": message,
+                    "shorthand": shorthand if shorthand else "patientassist.PATIENT_MESSAGE"
+                    }))
+                assistersMessaged += 1
             except Exception as e:
                 print(f"[debug/patient_object] Error sending message to assister {assister.id}: {e}")
                 await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
+        
+        print(f"[debug/patient_object] Messaged {assistersMessaged} assisters for patient {self.patientID}")
+        return assistersMessaged
 
 
 class Assister:
@@ -103,7 +113,6 @@ async def handler(websocket) -> None:
                     )
                 )
 
-
             # case for heartbeat
             if actualMessage == "ping":
                 print(f"Received ping from patientID {patientID}")
@@ -134,9 +143,9 @@ async def handler(websocket) -> None:
 
             if actualMessage == "mainButton":
                 print("Matched main button press")
-                await relay_message_to_assister(
-                    "mainButton", "Main button pressed by patient"
-                )
+
+                # This selection statement must thus also have the PatientID in the JSON so we know which patient sent the message
+                await relay_message_to_assister(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
 
             # Now handshake message from an assister
             if actualMessage == "assister":
@@ -231,18 +240,31 @@ async def main():
         await asyncio.Future()  # run forever
 
 
-async def relay_message_to_assister(shorthand: str, message: typing.Optional[str]) -> None:
+async def relay_message_to_assister(patientID, shorthand: Optional[str] = "PATIENT_MESSAGE") -> None:
     """
     Transforms and sends a message received by one patient to all registered assisters.
+
+    `patientID` - the ID of the patient who sent the message.
+    [optional] `shorthand` - used to determine how the message should be handled by the client. Default is "PATIENT_MESSAGE" but can also be "MAIN_BUTTON_PRESSED"
     """
     print("Relaying message to all assisters")
 
     print(f"\n[debug] patients: {patients}")
-    for patient in patients:
-        x = await patients[patient].messageAllAssisters(message)
-        if x is None:
-            # No assisters found for this patient, return an error message to the patient
-            await patients[patient].send(build_json_response("NO_ASSISTERS", "No assisters found for this patient"))
+
+    patient = patients[patientID]
+
+    if shorthand == "MAIN_BUTTON_PRESSED":
+        newMessage = "Patient pressed the HELP button!"
+    else:
+        newMessage = "Patient sent a message!"
+
+    x = await patient.messageAllAssisters(newMessage, shorthand)
+    if x is None:
+        # No assisters found for this patient, return an error message to the patient
+        await patient.send(build_json_response("NO_ASSISTERS", "No assisters found for this patient"))
+    else:
+        # TODO: if x == 0 then obviously no assisters were found, so return an error message to the patient
+        await patient.send(build_json_response("FORWARDING_SUCCESS", f"Message relayed successfully to {x} assisters"))
 
 
 if __name__ == "__main__":
