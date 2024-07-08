@@ -42,7 +42,13 @@ class Patient:
             return None
 
         assistersMessaged = 0
+        assisterErrs = 0
         for assister in self.joinedAssister: # dont use assisters dict, keep it just in the object as defined in the class. #OOP
+            # check if the assister is still connected
+            if assister.closed:
+                print(f"[debug/patient] Assister {assister.id} is closed, removing from list")
+                self.joinedAssister.remove(assister)
+                continue
             try:
                 print(f"[debug/patient_object] Sending message to assister {assister.id}")
                 await assister.send(json.dumps({
@@ -53,7 +59,8 @@ class Patient:
                 assistersMessaged += 1
             except Exception as e:
                 print(f"[debug/patient_object] Error sending message to assister {assister.id}: {e}")
-                await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
+                # await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
+                assisterErrs += 1
         
         print(f"[debug/patient_object] Messaged {assistersMessaged} assisters for patient {self.patientID}")
         return assistersMessaged
@@ -145,7 +152,7 @@ async def handler(websocket) -> None:
                 print("Matched main button press")
 
                 # This selection statement must thus also have the PatientID in the JSON so we know which patient sent the message
-                await relay_message_to_assister(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
+                await relay_message_to_assisters(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
 
             # Now handshake message from an assister
             if actualMessage == "assister":
@@ -186,27 +193,6 @@ async def handler(websocket) -> None:
             print(f"Patient {patientID} not found in patients list")
 
 
-async def send_message(Patient, message: str) -> None:
-    """
-    Sends a message from a patient to each registered assister.
-    `Patient` is the patient object that sent the message.
-    `message` - the message from the patient to the assisters.
-    """
-
-    # Each message should be a JSON response returned with essential keys: "shorthand" and "message"
-    # "shorthand" is a string that the JS uses to determine how best to handle themessage
-    # current shorthands are always prefixed by "assistanceapp." and can be one of:
-    # "SUCCESS", "NO_ASSISTERS", "ERROR_FORWARDING", "ERROR_PARSING", "SERVER_EXCEPTION"
-    # when using "SUCCESS" another key "numAssisters" is required
-
-    # simple forwarder:
-
-
-
-
-    pass
-
-
 async def register_patient(websocket, patientID, userAgent) -> bool:
     """
     Registers a patient with the server.
@@ -240,7 +226,7 @@ async def main():
         await asyncio.Future()  # run forever
 
 
-async def relay_message_to_assister(patientID, shorthand: Optional[str] = "PATIENT_MESSAGE") -> None:
+async def relay_message_to_assisters(patientID, shorthand: Optional[str] = "PATIENT_MESSAGE") -> None:
     """
     Transforms and sends a message received by one patient to all registered assisters.
 
@@ -259,11 +245,10 @@ async def relay_message_to_assister(patientID, shorthand: Optional[str] = "PATIE
         newMessage = "Patient sent a message!"
 
     x = await patient.messageAllAssisters(newMessage, shorthand)
-    if x is None:
+    if x is None or x == 0:  # obviously no assisters were found is the same as x being none
         # No assisters found for this patient, return an error message to the patient
         await patient.send(build_json_response("NO_ASSISTERS", "No assisters found for this patient"))
     else:
-        # TODO: if x == 0 then obviously no assisters were found, so return an error message to the patient
         await patient.send(build_json_response("FORWARDING_SUCCESS", f"Message relayed successfully to {x} assisters"))
 
 
