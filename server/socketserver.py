@@ -4,6 +4,7 @@ import datetime
 import time
 import typing
 import json
+import traceback
 
 patients = {}
 assisters = {}
@@ -25,15 +26,27 @@ class Patient:
         await self.websocket.send(message)
 
     async def addJoinedAssister(self, websocket) -> None:
-        self.joinedAssister.append(websocket)
+        try:
+            self.joinedAssister.append(websocket)
+            print(f"[debug/patient_object] Added assister {websocket} to patient {self.patientID}; length of joinedAssister: {len(self.joinedAssister)}")
+            return True
+        except Exception as e:
+            print(f"[debug/patient_object] Error adding assister to patient {self.patientID}: {e}")
+            return False
 
     async def messageAllAssisters(self, message: str) -> None:
+        print(f"[debug/patient_object] Attempting to message all assisters for patient {self.patientID}")
         if len(self.joinedAssister) == 0:
             print(f"[debug/patient_object] No assisters found for patient {self.patientID}")
-            return await self.websocket.send(build_json_response("RELAY_NO_ASSISTERS", "No assisters currently available for patient"))
-        for assister in assisters:
-            print(f"[debug/patient_object] Sending message to assister {assister.assisterID}")
-            await assister.websocket.send(json.dumps({"type": "patientMessage", "message": message}))
+            return None
+        for assister in self.joinedAssister: # dont use assisters dict, keep it just in the object as defined in the class. #OOP
+            try:
+                print(f"[debug/patient_object] Sending message to assister {assister.id}")
+                await assister.send(json.dumps({"type": "patientMessage", "message": message}))
+                return True
+            except Exception as e:
+                print(f"[debug/patient_object] Error sending message to assister {assister.id}: {e}")
+                await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
 
 
 class Assister:
@@ -90,6 +103,12 @@ async def handler(websocket) -> None:
                     )
                 )
 
+
+            # case for heartbeat
+            if actualMessage == "ping":
+                print(f"Received ping from patientID {patientID}")
+                return await websocket.send("pong")
+
             # If there are no errs, proceed
 
             if actualMessage == "Hello, server!":
@@ -97,7 +116,7 @@ async def handler(websocket) -> None:
                 # await websocket.send("success")
                 await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
                 print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
-                
+
                 registerPatient = await register_patient(
                     websocket, patientID, clientUserAgent
                 )
@@ -134,10 +153,22 @@ async def handler(websocket) -> None:
                     build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
                 )
 
-            if actualMessage == "registerAssister":
-                print(f"Matched request to register an assister to patient {patientID}")
-                patients[patientID].addJoinedAssister(websocket)
-    except websockets.exceptions.ConnectionClosed as e:
+            if actualMessage.startswith("registerAsAssister"):
+                targetPatientId = int(actualMessage.split(";")[1])
+                print(f"Matched request to register an assister to patient {targetPatientId}")
+                y = await patients[f'{targetPatientId}'].addJoinedAssister(websocket)
+                print(y)
+                if y:
+                    await websocket.send(build_json_response("ASSISTER_REGISTERED", f"Assister registered successfully to patient {targetPatientId}"))
+                else:
+                    await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", "Error registering assister"))
+
+    except websockets.exceptions.ConnectionClosedError as e:
+
+        # WHY AM I GETTing "Connection closed: sent 1011 (internal error); no close frame received" here? 
+        # The connection should not be closed after a valid message is sent?
+
+        print(f"Traceback: {traceback.format_exc()}")
         print(f"Connection closed: {e}")
         if patientID in patients:
             print(f"Removing patient {patientID} from patients list")
@@ -208,7 +239,10 @@ async def relay_message_to_assister(shorthand: str, message: typing.Optional[str
 
     print(f"\n[debug] patients: {patients}")
     for patient in patients:
-        await patients[patient].messageAllAssisters(message)
+        x = await patients[patient].messageAllAssisters(message)
+        if x is None:
+            # No assisters found for this patient, return an error message to the patient
+            await patients[patient].send(build_json_response("NO_ASSISTERS", "No assisters found for this patient"))
 
 
 if __name__ == "__main__":
