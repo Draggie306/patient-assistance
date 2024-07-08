@@ -76,23 +76,26 @@ function connectToServer() {
             var decodedMessage = decodeJSON(event.data);
 
             if (decodedMessage["shorthand"] === "patientassist.GETALLPATIENTS_SUCCESS") {
-                console.log(`Patient list: ${decodedMessage["message"]}`);
+                log("[assister/MESSAGE_GETALLPATIENTS_SUCCESS] Received all patients from server.")
                 displayAllPatients(decodeJSON(decodedMessage["message"]));
+            } else if (decodedMessage["shorthand"] === "patientassist.REGISTERASSISTER_SUCCESS") {
+                log("[assister/MESSAGE_REGISTERASSISTER_SUCCESS] Registered as assister successfully.")
+                window.alert("Registered as assister successfully.");
             }
-
-        });
+        }
+        );
 
     } catch (error) {
         log(`Error in socketry script: error ${error}`);
         window.alert(`Error in socketry script was ${error}`);
         socketStatus = 0;
-        log("[connect] Socket status is 0");
+        // log("[connect] Socket status is 0");
     }
 }
 
 function displayAllPatients(patients) {
     // Display all patients in the patient list
-    console.log("Displaying all patients...");
+    log("Displaying all patients...");
     console.log(patients);
     pPatientList.innerHTML = "";
     patients.forEach(patient => {
@@ -103,9 +106,17 @@ function displayAllPatients(patients) {
 
 function getAllPatients() {
     // Get all patients from the server
-    console.log(socket)
-    console.log("Getting all patients...");
+    console.log("Retrieving all patients from server dict");
+    log(socket)
     socket.send(constructJSON("getAllPatients"));
 }
+
+function registerAsAssister(patientID) {
+    // Register as an assister for a patient
+    log(`Registering as assister for patient ${patientID}`);
+    socket.send(constructJSON(`registerAsAssister;${patientID}`));
+}
+
+
 
 connectToServer();

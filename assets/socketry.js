@@ -9,11 +9,16 @@ let socketStatus = null; // do not assume that the socket is connected
 let socket = null;
 const defaultWsUrl = "ws://192.168.1.68:8001"; // default but can be changed, just easier for development
 
+var errSound = new Audio("../assets/sounds/error.mp3");
+
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
     log(message);
 
     if (shouldAlertToo) {
+        // play sound from assets/sounds/error.mp3
+        errSound.play();
+
         window.alert(message)
     }
 }
@@ -23,9 +28,9 @@ function displayLogAndAlert(message, shouldAlertToo) {
 function constructJSON(message) {
     return JSON.stringify(
         {
-            "clientID": clientID,
-            "userAgent": userAgent,
-            "message": message
+            "clientID": `${clientID}`,
+            "userAgent": `${userAgent}`,
+            "message": `${message}`
         }
     );
 }
@@ -113,6 +118,9 @@ function connectToServer() {
                 case "assistanceapp.SERVER_EXCEPTION":
                     displayLogAndAlert("A generic exception occurred on the server side and your request could not be completed", true); 
                     break;
+                case "assistanceapp.RELAY_NO_ASSISTERS":
+                    displayLogAndAlert("No assister devices are currently connected!", true);
+                    break;
                 default:
                     displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string
                     break;
@@ -127,6 +135,15 @@ function connectToServer() {
     }
 }
 
+
+function heartbeat() {
+    // Send a heartbeat to the server
+    socket.send(constructJSON("ping"));
+}
+
+const interval = setInterval(function ping() {
+    socket.send(constructJSON("heartbeat"));
+}, 30000); // 30 seconds
 
 // generic send message function
 function sendSocketMessage(message) {

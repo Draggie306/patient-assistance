@@ -10,7 +10,10 @@ console.log("Hello, mum!");
 
 var msgBoxForWsURL = document.getElementById("initwsURL");
 var pPatientList = document.getElementById("patientList");
+var inputPatientId = document.getElementById("patientIdInput");
 const defaultWsURL = "ws://192.168.1.68:8001"; // Default to my own local network RPi hosting the server
+var dingSound = new Audio("../assets/sounds/ding.mp3");
+
 
 function log(message, level = 1) {
     if (level == 1) {
@@ -56,5 +59,16 @@ function handleChangedWsURL(type) {
     }
 }
 
-// display all patients currently registered on the server once document is loaded
 
+// Now, wait for the patient ID to be inputted
+inputPatientId.addEventListener("keypress", function (e) {
+    // legends over at https://www.w3schools.com/howto/howto_js_trigger_button_enter.asp
+    if (e.key === "Enter") {
+        var patientId = inputPatientId.value;
+        log(`Patient ID entered: ${patientId}`);
+
+        registerAsAssister(patientId.trim());
+
+        inputPatientId.value = "";
+    }
+});
