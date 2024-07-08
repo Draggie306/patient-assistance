@@ -20,13 +20,23 @@
 
     <!-- Now to the juicy stuff. -->
     <body>
-        <p><strong>Patient Assistance v8</strong></p>
+        <p><strong>Patient Assistance v10</strong></p>
         <p id="hiddenTopText"></p>
-        <button id="hugButton" class="buttons sidebutton">HUG</button>
-        <button id="stairsButton" class="buttons sidebutton">STAIRS</button>
-        <button id="mainHelpButton" class="buttons centrebutton">HELP!</button>
-        <button id="waterButton" class="buttons sidebutton">WATER</button>
-        <button id="altButton" class="buttons sidebutton">OTHER</button>
+        <div id = "outerButtonContainer">
+            <div id = "topTwoButtons">
+                <button id="hugButton" class="buttons sidebutton">HUG</button>
+                <button id="stairsButton" class="buttons sidebutton">STAIRS</button>
+            </div>
+
+            <div id = "centreButton">
+                <button id="mainHelpButton" class="buttons centrebutton">HELP!</button>
+            </div>
+
+            <div id = "bottomTwoButtons">
+                <button id="waterButton" class="buttons sidebutton">WATER</button>
+                <button id="altButton" class="buttons sidebutton">OTHER</button>
+            </div>
+
 
         <input type="text" id="txtBox" placeholder="Send a custom message"/>
         <br>

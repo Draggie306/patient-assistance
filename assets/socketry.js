@@ -143,11 +143,11 @@ function connectToServer() {
             switch (shorthand) { // Using: https://www.w3schools.com/js/js_switch.asp
                 case "patientassist.SUCCESS": // generic success
                     if (message === "patientRegisterAck") {
-                        displayLogAndAlert("Registered as patient successfully.", false);
+                        displayLogAndAlert("✅ Registered as patient successfully.", false);
                     } else if (message === "handshakeAck") {
-                        displayLogAndAlert("Handshake successful.", false);
+                        displayLogAndAlert("✅ Handshake successful.", false);
                     } else {
-                        displayLogAndAlert(`Success: ${message}`, false);
+                        displayLogAndAlert(`✅ Success: ${message}`, false);
                     }
                     break;
                 case "patientassist.NO_ASSISTERS":
