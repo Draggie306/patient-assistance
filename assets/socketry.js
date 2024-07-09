@@ -11,6 +11,7 @@ const defaultWsUrl = "ws://192.168.1.68:8001"; // default but can be changed, ju
 
 var errSound = new Audio("../assets/sounds/error.mp3");
 
+// WS Code Mappings taken from StackOverflow
 let specificStatusCodeMappings = {
     '1000': 'Normal Closure',
     '1001': 'Going Away',
@@ -50,13 +51,19 @@ function getStatusCodeString(code) {
     return '(Unknown)';
 }
 
+
+/*
+    * Function to display a message in the console with a timestamp.
+    * @param {string} message - The message to be displayed.
+    * @param {number} shouldAlertToo - Whether an alert should be shown to the user - 1 for yes, 0 for no.
+*/
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
     log(message);
 
     if (shouldAlertToo) {
         // play sound from assets/sounds/error.mp3
-        errSound.play();
+        errSound.play(); // TODO: don't wait for it to finish playing if called again
 
         window.alert(`error: ${message}`);
     }
@@ -102,14 +109,14 @@ function connectToServer() {
             console.error(event)
             displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}. Please ensure that the accompanying Python websocket handler is running.`, true);
             socketStatus = 0;
+            log("Socket status set to 0 (failed to connect)");
             if (wsUrl === defaultWsUrl) {
                 let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is inthe GitHub repo.";
                 // let t_old = `The default WebSocket URL is being used! If the buttons below are grey, please input the correct server URL and refresh the page.`;
                 statusTextT.innerHTML = t;
                 statusTextT.style.color = "#ff0000";
-                handleChangedWsURL(3); // Show th box to allow user to change wsURL
+                handleChangedWsURL(3); // Shows the box to allow user to change wsURL
             }
-            console.debug("Socket status is 0");
             throw new Error("Error in socket connection.");
         });
 
@@ -118,10 +125,17 @@ function connectToServer() {
             displayLogAndAlert("[connect/ELOpen] Connection opened successfully", false);
             onConnectionEstablished();
             socketStatus = 1;
-            log("Set socket status to 1");
+            log("Set socket status to 1 (connected)");
             socket.send(constructJSON("Hello, server!"));
-            log("Message sent to server.");
+            log("Custom handshake message (Hello, server!) sent to server from patient");
 
+            // New friendly name for the patient and reconnect feature
+            if (localStorage.getItem("friendlyName") !== null) {
+                // if the friendlyName is already set, the user want to be aBle to be reconnected.
+                var friendlyName = localStorage.getItem("friendlyName");
+                socket.send(constructJSON(`patientRegister:${friendlyName}`)); 
+                //n.b.  patientID to associate the object with the friendlyName is built into the constructJSON function
+            }
 
             // update LocalStorage with the new wsURL
             localStorage.setItem("wsURL", wsUrl);

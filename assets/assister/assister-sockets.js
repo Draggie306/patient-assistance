@@ -133,7 +133,19 @@ async function connectToServer() {
             }
 
 
-            // check for ACTUAL messages from the patient
+            // check for ACTUAL *manual* messages from the patient
+            
+            /* if shorthand == "MAIN_BUTTON_PRESSED":
+                newMessage = "Patient pressed the HELP button!"
+        elif shorthand == "HUG_BUTTON_PRESSED":
+            newMessage = "The patient wants a hug."
+        elif shorthand == "STAIRS_BUTTON_PRESSED":
+            newMessage = "The patient needs help with going up or down the stairs."
+        elif shorthand == "FOOD_BUTTON_PRESSED":
+            newMessage = "Patient wants food!"
+        elif shorthand == "WATER_BUTTON_PRESSED":
+            newMessage = "Patient needs water - fizzy or still?"
+            */
 
             if (shorthandResponse === "patientassist.PATIENT_MESSAGE") {
                 log("[assister/PATIENT_MESSAGE] Received message from patient.")
@@ -144,7 +156,32 @@ async function connectToServer() {
                 airhorn.play();
                 notifyMe("Patient needs assistance!");
 
-                //window.alert("Main button pressed by patient.");
+                //window.alert("Main button pressed by patient."); // tested and working
+            } else if (shorthandResponse === "patientassist.HUG_BUTTON_PRESSED") {
+                log("[assister/HUG_BUTTON_PRESSED] Hug button pressed by patient.")
+                ding.play();
+                notifyMe("Patient wants a hug!");
+                //window.alert("Hug button pressed by patient."); //tested 09/07/2024 07:38 working
+            } else if (shorthandResponse === "patientassist.STAIRS_BUTTON_PRESSED") {
+                log("[assister/STAIRS_BUTTON_PRESSED] Stairs button pressed by patient.")
+                ding.play();
+                notifyMe("Patient needs help with stairs!");
+                //window.alert("Stairs button pressed by patient."); // tested 09/07/2024 07:44 working
+            } else if (shorthandResponse === "patientassist.FOOD_BUTTON_PRESSED") {
+                log("[assister/FOOD_BUTTON_PRESSED] Food button pressed by patient.")
+                ding.play();
+                notifyMe("Patient is hungry!");
+                //window.alert("Food button pressed by patient."); // tested 09/07/2024 07:51 working
+            } else if (shorthandResponse === "patientassist.WATER_BUTTON_PRESSED") {
+                log("[assister/WATER_BUTTON_PRESSED] Water button pressed by patient.")
+                ding.play();
+                notifyMe("Patient needs water!");
+                //window.alert("Water button pressed by patient."); // tested 09/07/2024 07:59 working
+            } else {
+                log(`[assister/MESSAGE] Message with shorthand from server: ${decodedMessage["message"]}`);
+                // ding.play();
+                // notifyMe(decodedMessage["message"]);
+                // displayLogAndAlert(decodedMessage["message"], false); // should work, haven't tried
             }
         });
 
@@ -186,6 +223,7 @@ async function registerAsAssister(patientID) {
     sendAsync(constructJSON(`registerAsAssister;${patientID}`));
 }
 
+// TODO: copy async function into main.js patient side script.
 async function sendAsync(message) {
     return new Promise((resolve, reject) => {
       // Setup response handlers
@@ -196,6 +234,7 @@ async function sendAsync(message) {
         reject(error);
       };
       socket.send(message);
+      log(`[sendAsync] Sent message successfully`);
     });
   }
   

@@ -16,11 +16,19 @@ const defaultWsURL = "ws://192.168.1.68:8001"; // Default to my own local networ
 // servURL contains the websocket URL and is hidden once the connection is established
 
 
-// Main button! The one right in the centre of the screem
+// Buttons for the main help, hug, stairs, water, and food buttons.
 var mainButton = document.getElementById("mainHelpButton");
+var hugButton = document.getElementById("hugButton");
+var stairsButton = document.getElementById("stairsButton");
+var waterButton = document.getElementById("waterButton");
+var foodButton = document.getElementById("foodButton");
+
+
 var msgBoxForWsURL = document.getElementById("initwsURL");
 var statusTextP = document.getElementById("defaultHiddenStatusText");
 
+
+var friendlyName = document.getElementById("friendlyName");
 
 function log(message, level = 1) {
     if (level == 1) {
@@ -83,7 +91,35 @@ mainButton.addEventListener("click", function() {
     sendSocketMessage("mainButton");
 })
 
+hugButton.addEventListener("click", function() {
+    console.log(`Hug button clicked at ${new Date()}`);
+    sendSocketMessage("hugButton");
+})
 
+stairsButton.addEventListener("click", function() {
+    console.log(`Stairs button clicked at ${new Date()}`);
+    sendSocketMessage("stairsButton");
+})
+
+waterButton.addEventListener("click", function() {
+    console.log(`Water button clicked at ${new Date()}`);
+    sendSocketMessage("waterButton");
+})
+
+foodButton.addEventListener("click", function() {
+    console.log(`Food button clicked at ${new Date()}`);
+    sendSocketMessage("foodButton");
+})
+
+// Detect changes in the WebSocket URL input box, and store the value in localStorage
 msgBoxForWsURL.addEventListener("change", function() {
     handleChangedWsURL(1);
 })
+
+// Store the friendly name for reconnecting after broken connection [TODO]
+
+/*
+friendlyName.addEventListener("change", function() { // change to submit?
+    localStorage.setItem("friendlyName", friendlyName.value);
+})
+*/
