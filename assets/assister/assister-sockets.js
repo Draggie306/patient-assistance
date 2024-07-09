@@ -47,7 +47,8 @@ function getStatusCodeString(code) {
     return '(Unknown)';
 }
 
-
+// test with code 1011
+console.log(getStatusCodeString(1011));
 
 function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
@@ -126,6 +127,9 @@ async function connectToServer() {
                 log("[assister/ASSISTER_REGISTERED_EVENT] Registered as assister successfully.")
                 window.alert("Registered as assister successfully.");
                 document.getElementById("patientList").innerHTML = "Waiting for patient to send message...";
+            } else if (shorthandResponse === "patientassist.ASSISTER_REGISTER_FAILED") {
+                log("[assister/ASSISTER_REGISTER_FAILED] Failed to register as assister.")
+                window.alert("Failed to register as assister.");
             }
 
 
@@ -145,7 +149,7 @@ async function connectToServer() {
         });
 
         socket.addEventListener("close", (event) => {
-            displayLogAndAlert(`Connection closed. Code: ${event.code}, reason: ${event.reason}`, true);
+            displayLogAndAlert(`Connection closed. Code: ${event.code} (${getStatusCodeString(event.code)}), reason: ${event.reason}`, true);
             socketStatus = 0;
             console.debug("Socket status is 0");
         });
