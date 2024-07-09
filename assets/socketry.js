@@ -182,6 +182,9 @@ function connectToServer() {
                 case "patientassist.patientRegisterAck":
                     displayLogAndAlert("Patient registered successfully.", false);
                     break;
+                case "patientassist.ASSISTER_JOINED":
+                    displayLogAndAlert("An assister has joined the session.", false);
+                    break;
                 case "patientassist.FORWARDING_SUCCESS":
                     displayLogAndAlert(message, false);
                     const jsConfetti = new JSConfetti()
@@ -191,7 +194,19 @@ function connectToServer() {
                     displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string
                     break;
             }
+        
+
         });
+
+        // error if the connection is closed
+        socket.addEventListener("close", (event) => {
+            displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, true);
+            socketStatus = 0;
+            log("[connect] Socket status is 0");
+            console.log(`Socket closed with code ${event.code} and reason ${event.reason}`);
+            console.log(`Status code string is: ${getStatusCodeString(event.code)}`);
+        }
+        );
 
     } catch (error) {
         log(`Error in socketry script: error ${error}`);
