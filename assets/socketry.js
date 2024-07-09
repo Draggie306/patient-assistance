@@ -19,7 +19,7 @@ let specificStatusCodeMappings = {
     '1003': 'Unsupported Data',
     '1004': '(For future)',
     '1005': 'No Status Received',
-    '1006': 'Abnormal Closure',
+    '1006': 'Abnormal Closure. This may mean that the server has restarted, please refresh',
     '1007': 'Invalid frame payload data',
     '1008': 'Policy Violation',
     '1009': 'Message too big',
@@ -51,6 +51,16 @@ function getStatusCodeString(code) {
     return '(Unknown)';
 }
 
+
+/*
+function translateStatusCodeIntoActuallyADisplayableMessage(code) {
+    // manually add codes here when encountered to better display
+    if (code === 1006) {
+        return "The connection was closed abnormally. This may mean that the server has restarted, please refresh";
+    }
+    return getStatusCodeString(code);
+}
+*/
 
 /*
     * Function to display a message in the console with a timestamp.
@@ -133,7 +143,7 @@ function connectToServer() {
             if (localStorage.getItem("friendlyName") !== null) {
                 // if the friendlyName is already set, the user want to be aBle to be reconnected.
                 var friendlyName = localStorage.getItem("friendlyName");
-                socket.send(constructJSON(`patientRegister:${friendlyName}`)); 
+                socket.send(constructJSON(`associateNameToPatientObject:${friendlyName}`)); 
                 //n.b.  patientID to associate the object with the friendlyName is built into the constructJSON function
             }
 
@@ -184,6 +194,15 @@ function connectToServer() {
                     break;
                 case "patientassist.ASSISTER_JOINED":
                     displayLogAndAlert("An assister has joined the session.", false);
+                    break;
+                case "patientassist.ASSOCIATE_MATCH_SUCCESS":
+                    displayLogAndAlert("Matched your friendly name to an older patient object which has now been overwritten.", false);
+                    break;
+                case "patientassist.ASSOCIATE_SUCCESS":
+                    displayLogAndAlert("Associated your friendly name to the current patient object for future reconnections.", false);
+                    break;
+                case "patientassist.ASSOCIATE_ERROR":
+                    displayLogAndAlert("Error in peforming the associations with the friendly name.", true);
                     break;
                 case "patientassist.FORWARDING_SUCCESS":
                     displayLogAndAlert(message, false);

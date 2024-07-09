@@ -15,7 +15,7 @@ let specificStatusCodeMappings = {
     '1003': 'Unsupported Data',
     '1004': '(For future)',
     '1005': 'No Status Received',
-    '1006': 'Abnormal Closure',
+    '1006': 'Abnormal Closure. This may mean that the server has restarted, please refresh',
     '1007': 'Invalid frame payload data',
     '1008': 'Policy Violation',
     '1009': 'Message too big',
@@ -61,6 +61,7 @@ function displayLogAndAlert(message, shouldAlertToo) {
 
 // Use json for websocket messages.
 function constructJSON(message) {
+    log(`[constructJSON] the json is being constructed`)
     return JSON.stringify(
         {
             "clientID": clientID,
