@@ -6,6 +6,7 @@ import typing
 import json
 import traceback
 from typing import Optional
+import uuid
 
 patients = {}
 assisters = {}
@@ -17,7 +18,7 @@ assisters = {}
 # Also, the websocket is the completely unique identifier for each patient.
 
 class Patient:
-    def __init__(self, websocket, patientID, userAgent, joinedAssister=[]):
+    def __init__(self, websocket, patientID, userAgent, joinedAssister=[], friendlyName=None):
         self.websocket = websocket  # this is the unique websocket object for each patient
         self.patientID = patientID
         self.userAgent = userAgent
@@ -28,10 +29,19 @@ class Patient:
 
     async def addJoinedAssister(self, websocket) -> None:
         try:
+            await self.websocket.send(build_json_response("ASSISTER_JOINED", f"Assister joined successfully to patient {self.patientID}")) # notify the patient that an assister has joined
+
+            # create new assister object and add to the list of joined assisters
+            newAssister = Assister(websocket, self.patientID)
+            self.joinedAssister.append(newAssister)
+            assisters[websocket] = newAssister
+
+
+            # If the websocket send is successful, add the assister to the list of joined assisters
             self.joinedAssister.append(websocket)
             print(f"[debug/patient_object] Added assister {websocket} to patient {self.patientID}; length of joinedAssister: {len(self.joinedAssister)}")
             return True
-        except Exception as e:
+        except websockets.exceptions.ConnectionClosed as e:
             print(f"[debug/patient_object] Error adding assister to patient {self.patientID}: {e}")
             return False
 
@@ -57,19 +67,34 @@ class Patient:
                     "shorthand": shorthand if shorthand else "patientassist.PATIENT_MESSAGE"
                     }))
                 assistersMessaged += 1
-            except Exception as e:
-                print(f"[debug/patient_object] Error sending message to assister {assister.id}: {e}")
+            except websockets.exceptions.ConnectionClosed as e:
+                print(f"[debug/patient_object] Connection closed interruped sending message to assister {assister.id} ({e})")
                 # await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
                 assisterErrs += 1
-        
+            except websockets.exceptions.InvalidState as e:
+                print(f"[debug/patient_object] Invalid state error sending message to assister {assister.id}: {e}")
+                assisterErrs += 1
+            except Exception as e:
+                print(f"[debug/patient_object] Error sending message to assister {assister.id}: {e}")
+                assisterErrs += 1
+
         print(f"[debug/patient_object] Messaged {assistersMessaged} assisters for patient {self.patientID}")
         return assistersMessaged
 
 
 class Assister:
-    def __init__(self, assisterID, websocket):
+    def __init__(self, websocket, pairedPatient=Patient, assisterID=None, friendlyName=None):
         self.assisterID = assisterID
         self.websocket = websocket
+        self.pairedPatient = pairedPatient
+        self.friendlyName = friendlyName # string that allows reconnecting to a patient that has disconnected
+
+    async def getFriendlyName(self) -> str:
+        return self.friendlyName
+    
+    async def getID(self) -> str:
+        print(f"Assister ID: {self.assisterID} but we are using the websocket ID as the unique identifier")
+        return self.websocket.id
 
 
 def build_json_response(shorthand: str, message: str) -> str:
@@ -119,9 +144,21 @@ async def handler(websocket) -> None:
                         "ERROR_PARSING", f"Required fields not present: {e}"
                     )
                 )
+            except Exception as e:
+                print(f"Error parsing message: {e}")
+                return await websocket.send(
+                    build_json_response("ERROR_PARSING", f"Couldn't parse the message, ensure binary data is encoded with utf-8: {e}")
+                )
+            
+
+            # TODO: can we swich/case this long if statement instead? There will not be multiple cases for the same message, so this would
+            # reduce the number of comparisons needed. (or using elif instead of if for each case?)
 
             # case for heartbeat
             if actualMessage == "ping":
+                # TODO: heartbeats don't seem to keep the connection alive on mobile, so will need to have a "reconnect" automatic feature 
+                # thingy on the client, matched somewhere here :)
+
                 print(f"Received ping from patientID {patientID}")
                 return await websocket.send("pong")
 
@@ -153,6 +190,25 @@ async def handler(websocket) -> None:
 
                 # This selection statement must thus also have the PatientID in the JSON so we know which patient sent the message
                 await relay_message_to_assisters(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
+            
+            # TODO: can we get rid of shorthand and just use the passed 'actualMessage' - the relay_message_to_assisters function will
+            # handle the actual translation into the UI display message either way, this might be a little unnecessary then
+
+            if actualMessage == "hugButton":
+                print("[MATCHED BUTTON PRESS] Hug button pressed!")
+                await relay_message_to_assisters(patientID=patientID, shorthand="HUG_BUTTON_PRESSED")
+
+            if actualMessage == "stairsButton":
+                print("[MATCHED BUTTON PRESS] Stairs button has been pressed!")
+                await relay_message_to_assisters(patientID=patientID, shorthand="STAIRS_BUTTON_PRESSED")
+
+            if actualMessage == "foodButton":
+                print("[MATCHED BUTTON PRESS] Food button presse")
+                await relay_message_to_assisters(patientID=patientID, shorthand="FOOD_BUTTON_PRESSED")
+
+            if actualMessage == "waterButton":
+                print("[MATCHED BUTTON PRESS] Water button pressed")
+                await relay_message_to_assisters(patientID=patientID, shorthand="WATER_BUTTON_PRESSED")
 
             # Now handshake message from an assister
             if actualMessage == "assister":
@@ -169,8 +225,33 @@ async def handler(websocket) -> None:
                     build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
                 )
 
+            if actualMessage.startswith("patientReconnect"):
+                # todo: WIP! This is not yet implemented
+                # Reconnect to a patient that has disconnected, using the friendly name
+                friendlyName = actualMessage.split(";")
+                if len(friendlyName) != 2:
+                    return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
+
+                friendlyName = friendlyName[1]
+                print(f"Matched request to reconnect to patient with friendly name {friendlyName}")
+
+                # find all assisters that have the friendly name, as the patient object may have been deleted
+                matchedAssisters = []
+                for patient in patients:
+                    if patients[patient].friendlyName == friendlyName:
+                        print(f"Found patient with friendly name {friendlyName}")
+                        # add the assister to the patient's joinedAssister list
+                        await patients[patient].addJoinedAssister(websocket)
+                        return await websocket.send(build_json_response("RECONNECT_SUCCESS", f"Reconnected to patient with friendly name {friendlyName}"))
+
+
             if actualMessage.startswith("registerAsAssister"):
-                targetPatientId = int(actualMessage.split(";")[1])
+                targetPatientId = actualMessage.split(";")
+                if len(targetPatientId) != 2:
+                    return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
+                
+                targetPatientId = int(targetPatientId[1])
+
                 print(f"Matched request to register an assister to patient {targetPatientId}")
                 y = await patients[f'{targetPatientId}'].addJoinedAssister(websocket)
                 print(y)
@@ -178,6 +259,7 @@ async def handler(websocket) -> None:
                     await websocket.send(build_json_response("ASSISTER_REGISTERED", f"Assister registered successfully to patient {targetPatientId}"))
                 else:
                     await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", "Error registering assister"))
+
 
     except websockets.exceptions.ConnectionClosedError as e:
 
@@ -204,6 +286,16 @@ async def register_patient(websocket, patientID, userAgent) -> bool:
     except Exception as e:
         print(f"Error registering patient {patientID}: {e}")
         return False
+
+
+friendlyNameMapper = {}
+
+async def handle_reconnects(friendlyName: str) -> None
+    """
+    Handles reconnections to patients that have disconnected.
+    """
+    pass
+
 
 
 async def query_patients() -> None:
@@ -239,8 +331,17 @@ async def relay_message_to_assisters(patientID, shorthand: Optional[str] = "PATI
 
     patient = patients[patientID]
 
+    # TODO: again use a switch/case statement here instead of if/elif
     if shorthand == "MAIN_BUTTON_PRESSED":
         newMessage = "Patient pressed the HELP button!"
+    elif shorthand == "HUG_BUTTON_PRESSED":
+        newMessage = "The patient wants a hug."
+    elif shorthand == "STAIRS_BUTTON_PRESSED":
+        newMessage = "The patient needs help with going up or down the stairs."
+    elif shorthand == "FOOD_BUTTON_PRESSED":
+        newMessage = "Patient wants food!"
+    elif shorthand == "WATER_BUTTON_PRESSED":
+        newMessage = "Patient needs water - fizzy or still?"
     else:
         newMessage = "Patient sent a message!"
 
