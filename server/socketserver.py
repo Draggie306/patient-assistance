@@ -18,11 +18,12 @@ assisters = {}
 # Also, the websocket is the completely unique identifier for each patient.
 
 class Patient:
-    def __init__(self, websocket, patientID, userAgent, joinedAssister=[], friendlyName=None):
+    def __init__(self, websocket, patientID, userAgent, friendlyName=None):
         self.websocket = websocket  # this is the unique websocket object for each patient
         self.patientID = patientID
         self.userAgent = userAgent
-        self.joinedAssister = joinedAssister
+        self.joinedAssister = []  # Define this here as opposed to within __init__(... joinedAssister = [])! Fixed the issue of all joinedAssisters being identical across different patient objects
+        self.friendlyName = friendlyName
 
     async def send(self, message: str) -> None:
         await self.websocket.send(message)
@@ -32,9 +33,10 @@ class Patient:
             await self.websocket.send(build_json_response("ASSISTER_JOINED", f"Assister joined successfully to patient {self.patientID}")) # notify the patient that an assister has joined
 
             # create new assister object and add to the list of joined assisters
-            newAssister = Assister(websocket, self.patientID)
-            self.joinedAssister.append(newAssister)
-            assisters[websocket] = newAssister
+            #newAssister = Assister(websocket, self.patientID)
+            #self.joinedAssister.append(newAssister)
+            #assisters[websocket] = newAssister
+            # NOTE DON'T do this. just don't. keep the assister object in the patient object, not in the global dict
 
 
             # If the websocket send is successful, add the assister to the list of joined assisters
@@ -55,12 +57,17 @@ class Patient:
         assisterErrs = 0
         for assister in self.joinedAssister: # dont use assisters dict, keep it just in the object as defined in the class. #OOP
             # check if the assister is still connected
+            print(f"[debug] Assister: {assister.id}")
+            print(f"[debug] joinedAssister: {self.joinedAssister}")
+            
+            """
             if assister.closed:
                 print(f"[debug/patient] Assister {assister.id} is closed, removing from list")
                 self.joinedAssister.remove(assister)
                 continue
+            """
             try:
-                print(f"[debug/patient_object] Sending message to assister {assister.id}")
+                print(f"[debug/patient_object] Sending message to assister {assister.id} for patient {self.patientID}")
                 await assister.send(json.dumps({
                     "type": "patientMessage",
                     "message": message,
@@ -69,7 +76,7 @@ class Patient:
                 assistersMessaged += 1
             except websockets.exceptions.ConnectionClosed as e:
                 print(f"[debug/patient_object] Connection closed interruped sending message to assister {assister.id} ({e})")
-                # await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.id}"))
+                # await self.websocket.send(build_json_response("ERROR_FORWARDING", f"Error sending message to assister {assister.assisterID}"))
                 assisterErrs += 1
             except websockets.exceptions.InvalidState as e:
                 print(f"[debug/patient_object] Invalid state error sending message to assister {assister.id}: {e}")
@@ -167,23 +174,31 @@ async def handler(websocket) -> None:
             if actualMessage == "Hello, server!":
                 print("Matched handshake message from a patient")
                 # await websocket.send("success")
-                await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
-                print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
 
-                registerPatient = await register_patient(
-                    websocket, patientID, clientUserAgent
-                )
 
-                if registerPatient:
-                    await websocket.send(
-                        build_json_response("SUCCESS", "patientRegisterAck")
-                    )
+
+                # Check if the patient with the current patientID is already registered
+                if patientID in patients:
+                    print(f"Patient {patientID} is already registered")
+
                 else:
-                    await websocket.send(
-                        build_json_response(
-                            "SERVER_EXCEPTION", "Error registering patient"
-                        )
+                    await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
+                    print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
+
+                    registerPatient = await register_patient(
+                        websocket, patientID, clientUserAgent
                     )
+
+                    if registerPatient:
+                        await websocket.send(
+                            build_json_response("SUCCESS", "patientRegisterAck")
+                        )
+                    else:
+                        await websocket.send(
+                            build_json_response(
+                                "SERVER_EXCEPTION", "Error registering patient"
+                            )
+                        )
 
             if actualMessage == "mainButton":
                 print("Matched main button press")
@@ -244,6 +259,44 @@ async def handler(websocket) -> None:
                         await patients[patient].addJoinedAssister(websocket)
                         return await websocket.send(build_json_response("RECONNECT_SUCCESS", f"Reconnected to patient with friendly name {friendlyName}"))
 
+            if actualMessage.startswith("associateNameToPatientObject"):
+                try:
+                    # get the friendly name from the message
+                    parts = actualMessage.split(";")
+                    if len(parts) != 2:
+                        raise ValueError("Invalid message format for associating friendly name")
+
+                    friendlyName = parts[1]
+                    print(f"Matched request to associate a friendly name to a patient object: {friendlyName}")
+
+                    # Iterate over the patients list to find a patient with the same friendly name...
+                    iterations = 0
+                    matchedPatient = False
+                    for patientID, patientObj in patients.items():
+                        iterations += 1
+                        if patientObj.friendlyName == friendlyName:
+                            matchedPatient = True
+                            print(f"Found patient {patientObj.patientID} with friendly name {friendlyName}")
+
+                            # ... and if there is, replace the old patient object with the new one
+                            patientObj.friendlyName = friendlyName
+                            patientObj.websocket = websocket  # Kinda hacky way to replace the old websocket object with the new one, probably shouldn't do this but hope it works
+                            patientObj.is_disconnected = False
+                            patientObj.disconnected_at = None
+
+                            print(f"Associated friendly name {friendlyName} to patient {patientObj.patientID}")
+
+                            await websocket.send(build_json_response("ASSOCIATE_MATCH_SUCCESS", f"Friendly name {friendlyName} associated successfully to patient {patientObj.patientID}"))
+
+                    if not matchedPatient:
+                        print(f"No existing patient found with friendly name {friendlyName}. Assigning the friendly name to the current patient object")
+                        patients[patientID].friendlyName = friendlyName
+                        print(f"[debug] patients: {patients}")
+                        await websocket.send(build_json_response("ASSOCIATE_SUCCESS", f"Friendly name {friendlyName} associated successfully to patient {patientID}"))
+
+                except Exception as e:
+                    print(f"Error associating friendly name to patient object: {e}")
+                    await websocket.send(build_json_response("ASSOCIATE_ERROR", f"Error associating friendly name to patient object: {e}"))
 
             if actualMessage.startswith("registerAsAssister"):
                 targetPatientId = actualMessage.split(";")
@@ -290,12 +343,11 @@ async def register_patient(websocket, patientID, userAgent) -> bool:
 
 friendlyNameMapper = {}
 
-async def handle_reconnects(friendlyName: str) -> None
+async def handle_reconnects(friendlyName: str) -> None:
     """
     Handles reconnections to patients that have disconnected.
     """
     pass
-
 
 
 async def query_patients() -> None:
