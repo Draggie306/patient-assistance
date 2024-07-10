@@ -273,7 +273,7 @@ async function sendSocketMessage(message) {
     // TODO: obsolete function, remove
     console.log(`socketStatus is ${socketStatus}`)
     if (socketStatus == 1) {
-        socket.send(constructJSON(message));
+        socket.send(await constructJSON(message));
     } else if (socketStatus == 0) {
         displayLogAndAlert(`The socket failed to connect to ${wsUrl}`, true);
     } else {
