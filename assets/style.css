@@ -121,6 +121,14 @@ html {
     height: 6vh;
 }
 
+#wsHistory {
+    text-align: center;
+    align-items: center;
+    background-color: rgb(202, 202, 202);
+    /* Max width calc is logarithmic on larger screens, e.g. as screen width increases, the text box width increases marginally more. */
+    height: 6vh;
+    vertical-align: middle;
+}
 
 #txtBox, #patientIdInput {
     margin-top: 10vh; /* Margin is above the text box, whereas padding is part of it! Learnt the hard way! */

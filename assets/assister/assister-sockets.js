@@ -47,6 +47,14 @@ function getStatusCodeString(code) {
     return '(Unknown)';
 }
 
+
+function playSound(sound) {
+    if (!sound.paused) {
+        sound.currentTime = 0; // rewind to start
+    }
+    sound.play();
+}
+
 // test with code 1011
 console.log(getStatusCodeString(1011));
 
@@ -153,29 +161,29 @@ async function connectToServer() {
                 window.alert(`Message from patient: ${decodedMessage["message"]}`);
             } else if (shorthandResponse === "MAIN_BUTTON_PRESSED") {
                 log("[assister/MAIN_BUTTON_PRESSED] Main button pressed by patient.")
-                ding.play();
-                airhorn.play();
+                playSound(ding);
+                playSound(airhorn);
                 notifyMe("Patient needs assistance!");
 
                 //window.alert("Main button pressed by patient."); // tested and working
-            } else if (shorthandResponse === "patientassist.HUG_BUTTON_PRESSED") {
+            } else if (shorthandResponse === "HUG_BUTTON_PRESSED") {
                 log("[assister/HUG_BUTTON_PRESSED] Hug button pressed by patient.")
-                ding.play();
+                playSound(ding);
                 notifyMe("Patient wants a hug!");
                 //window.alert("Hug button pressed by patient."); //tested 09/07/2024 07:38 working
-            } else if (shorthandResponse === "patientassist.STAIRS_BUTTON_PRESSED") {
+            } else if (shorthandResponse === "STAIRS_BUTTON_PRESSED") {
                 log("[assister/STAIRS_BUTTON_PRESSED] Stairs button pressed by patient.")
-                ding.play();
+                playSound(ding);
                 notifyMe("Patient needs help with stairs!");
                 //window.alert("Stairs button pressed by patient."); // tested 09/07/2024 07:44 working
-            } else if (shorthandResponse === "patientassist.FOOD_BUTTON_PRESSED") {
+            } else if (shorthandResponse === "FOOD_BUTTON_PRESSED") {
                 log("[assister/FOOD_BUTTON_PRESSED] Food button pressed by patient.")
-                ding.play();
+                playSound(ding);
                 notifyMe("Patient is hungry!");
                 //window.alert("Food button pressed by patient."); // tested 09/07/2024 07:51 working
-            } else if (shorthandResponse === "patientassist.WATER_BUTTON_PRESSED") {
+            } else if (shorthandResponse === "WATER_BUTTON_PRESSED") {
                 log("[assister/WATER_BUTTON_PRESSED] Water button pressed by patient.")
-                ding.play();
+                playSound(ding);
                 notifyMe("Patient needs water!");
                 //window.alert("Water button pressed by patient."); // tested 09/07/2024 07:59 working
             } else {

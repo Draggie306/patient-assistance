@@ -61,6 +61,13 @@ function getStatusCodeString(code) {
 }
 
 
+function playErrorSound() {
+    if (!errSound.paused) {
+        errSound.currentTime = 0;
+    }
+    errSound.play();
+}
+
 /*
 function translateStatusCodeIntoActuallyADisplayableMessage(code) {
     // manually add codes here when encountered to better display
@@ -82,7 +89,7 @@ function displayLogAndAlert(message, shouldAlertToo) {
 
     if (shouldAlertToo) {
         // play sound from assets/sounds/error.mp3
-        errSound.play(); // TODO: don't wait for it to finish playing if called again
+        playErrorSound();
 
         window.alert(`error: ${message}`);
     }
@@ -184,19 +191,19 @@ function connectToServer() {
                     }
                     break;
                 case "patientassist.NO_ASSISTERS":
-                    displayLogAndAlert("No assister devices are currently connected.", true);
+                    displayLogAndAlert("⚠️ No assister devices are currently connected.", true);
                     break;
                 case "patientassist.ERROR_FORWARDING":
-                    displayLogAndAlert("Error whilst forwarding the message to assisters.", false);
+                    displayLogAndAlert("⚠️ Error whilst forwarding the message to assisters.", false);
                     break;
                 case "patientassist.ERROR_PARSING":
-                    displayLogAndAlert("An error occurred whilst parsing your message. Maybe refresh the page??", true);
+                    displayLogAndAlert("⚠️ An error occurred whilst parsing your message. Maybe refresh the page??", true);
                     break;
                 case "patientassist.SERVER_EXCEPTION":
-                    displayLogAndAlert("A generic exception occurred on the server side and your request could not be completed", true); 
+                    displayLogAndAlert("⚠️ A generic exception occurred on the server side and your request could not be completed", true); 
                     break;
                 case "patientassist.RELAY_NO_ASSISTERS":
-                    displayLogAndAlert("No assister devices are currently connected!", true);
+                    displayLogAndAlert("⚠️ No assister devices are currently connected!", true);
                     break;
                 case "patientassist.patientRegisterAck":
                     displayLogAndAlert("Patient registered successfully.", false);
@@ -205,13 +212,13 @@ function connectToServer() {
                     displayLogAndAlert("An assister has joined the session.", false);
                     break;
                 case "patientassist.ASSOCIATE_MATCH_SUCCESS":
-                    displayLogAndAlert("Matched your friendly name to an older patient object which has now been overwritten.", false);
+                    displayLogAndAlert("Connection established successfully, and re-associated with a previously connected patient.", false);
                     break;
                 case "patientassist.ASSOCIATE_SUCCESS":
                     displayLogAndAlert("Associated your friendly name to the current patient object for future reconnections.", false);
                     break;
                 case "patientassist.ASSOCIATE_ERROR":
-                    displayLogAndAlert("Error in peforming the associations with the friendly name.", true);
+                    displayLogAndAlert("⚠️ Error in peforming the associations with the friendly name.", true);
                     break;
                 case "patientassist.FORWARDING_SUCCESS":
                     displayLogAndAlert(message, false);
