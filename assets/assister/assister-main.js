@@ -1,4 +1,4 @@
-console.log("Hello, mum!");
+console.log("Hello, mum's helper! 🎉");
 
 /*
     NOTE: Do not use https for the index.html file, as the websocket connection 

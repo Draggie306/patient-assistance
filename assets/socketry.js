@@ -61,7 +61,7 @@ function getStatusCodeString(code) {
 }
 
 
-function playErrorSound() {
+async function playErrorSound() {
     if (!errSound.paused) {
         errSound.currentTime = 0;
     }
@@ -83,13 +83,13 @@ function translateStatusCodeIntoActuallyADisplayableMessage(code) {
     * @param {string} message - The message to be displayed.
     * @param {number} shouldAlertToo - Whether an alert should be shown to the user - 1 for yes, 0 for no.
 */
-function displayLogAndAlert(message, shouldAlertToo) {
+async function displayLogAndAlert(message, shouldAlertToo) {
     statusTextP.innerHTML = message;
     log(message);
 
     if (shouldAlertToo) {
         // play sound from assets/sounds/error.mp3
-        playErrorSound();
+        await playErrorSound();
 
         window.alert(`error: ${message}`);
     }
@@ -97,7 +97,7 @@ function displayLogAndAlert(message, shouldAlertToo) {
 
 
 // Use json for websocket messages.
-function constructJSON(message) {
+async function constructJSON(message) {
     return JSON.stringify(
         {
             "clientID": `${clientID}`,
@@ -107,7 +107,7 @@ function constructJSON(message) {
     );
 }
 
-function onConnectionEstablished() {
+async function onConnectionEstablished() {
     // change buttons to active and not greyed out. 
     log("Received connection established call to activate buttons")
 
@@ -121,7 +121,7 @@ function onConnectionEstablished() {
 }
 
 // initialise the first socket connection
-function connectToServer() {
+async function connectToServer() {
     try {
         // Create WebSocket connection.
         displayLogAndAlert("Creating socket connection...", false);
@@ -147,19 +147,19 @@ function connectToServer() {
         });
 
         // ONLY IF the connection is established:
-        socket.addEventListener("open", (event) => {
+        socket.addEventListener("open", async (event) => { 
             displayLogAndAlert("[connect/ELOpen] Connection opened successfully", false);
-            onConnectionEstablished();
+            await onConnectionEstablished();
             socketStatus = 1;
             log("Set socket status to 1 (connected)");
-            socket.send(constructJSON("Hello, server!"));
+            socket.send(await constructJSON("Hello, server!"));
             log("Custom handshake message (Hello, server!) sent to server from patient");
 
             // New friendly name for the patient and reconnect feature
             if (localStorage.getItem("friendlyName") !== null) {
                 // if the friendlyName is already set, the user want to be aBle to be reconnected.
                 var friendlyName = localStorage.getItem("friendlyName");
-                socket.send(constructJSON(`associateNameToPatientObject;${friendlyName}`)); // no way, the colon before was causing the error
+                socket.send(await constructJSON(`associateNameToPatientObject;${friendlyName}`)); // no way, the colon before was causing the error
                 //n.b.  patientID to associate the object with the friendlyName is built into the constructJSON function
             }
 
@@ -172,7 +172,7 @@ function connectToServer() {
 
         // Listen for messages - this will be for the recipient side.
         socket.addEventListener("message", (event) => {
-            log("Message from server: ", event.data);
+            log(`Message from server: ${event.data}`);
 
             // Get just the "message" key's value from the returned JSON
             let data = JSON.parse(event.data);
@@ -264,12 +264,13 @@ function heartbeat() {
     socket.send(constructJSON("ping"));
 }
 
-const interval = setInterval(function ping() {
-    socket.send(constructJSON("heartbeat"));
+const interval = setInterval(async function ping() {
+    await socket.send(await constructJSON("heartbeat"));
 }, 30000); // 30 seconds
 
 // generic send message function
-function sendSocketMessage(message) {
+async function sendSocketMessage(message) {
+    // TODO: obsolete function, remove
     console.log(`socketStatus is ${socketStatus}`)
     if (socketStatus == 1) {
         socket.send(constructJSON(message));
@@ -282,7 +283,8 @@ function sendSocketMessage(message) {
 }
 
 
-function sendHelpMessage() {
+async function sendHelpMessage() {
+    // TODO: obsolete function, remove
     try {
         socket.send(`Help requested at ${new Date()}`);
     } catch (error) {
@@ -290,4 +292,7 @@ function sendHelpMessage() {
     }
 }
 
-connectToServer();
+
+(async () => {
+    await connectToServer();
+})();
