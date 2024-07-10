@@ -161,84 +161,85 @@ async def handler(websocket) -> None:
             # TODO: can we swich/case this long if statement instead? There will not be multiple cases for the same message, so this would
             # reduce the number of comparisons needed. (or using elif instead of if for each case?)
 
-            # case for heartbeat
-            if actualMessage == "ping":
-                # TODO: heartbeats don't seem to keep the connection alive on mobile, so will need to have a "reconnect" automatic feature 
-                # thingy on the client, matched somewhere here :)
+            match actualMessage:
+                case "ping": # case for heartbeat
+                    if actualMessage == "ping":
+                        # TODO: heartbeats don't seem to keep the connection alive on mobile, so will need to have a "reconnect" automatic feature 
+                        # thingy on the client, matched somewhere here :)
 
-                print(f"Received ping from patientID {patientID}")
-                return await websocket.send("pong")
+                        print(f"Received ping from patientID {patientID}")
+                        return await websocket.send("pong")
 
-            # If there are no errs, proceed
+                # If there are no errs, proceed
 
-            if actualMessage == "Hello, server!":
-                print("Matched handshake message from a patient")
-                # await websocket.send("success")
+                case "Hello, server!":
+                    print("Matched handshake message from a patient")
+                    # await websocket.send("success")
 
 
 
-                # Check if the patient with the current patientID is already registered
-                if patientID in patients:
-                    print(f"Patient {patientID} is already registered")
+                    # Check if the patient with the current patientID is already registered
+                    if patientID in patients:
+                        print(f"Patient {patientID} is already registered")
 
-                else:
-                    await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
-                    print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
-
-                    registerPatient = await register_patient(
-                        websocket, patientID, clientUserAgent
-                    )
-
-                    if registerPatient:
-                        await websocket.send(
-                            build_json_response("SUCCESS", "patientRegisterAck")
-                        )
                     else:
-                        await websocket.send(
-                            build_json_response(
-                                "SERVER_EXCEPTION", "Error registering patient"
-                            )
+                        await websocket.send(build_json_response("SUCCESS", "handshakeAck"))
+                        print(f"creating patient with websocket {websocket}, patientID {patientID}, and userAgent {clientUserAgent}")
+
+                        registerPatient = await register_patient(
+                            websocket, patientID, clientUserAgent
                         )
 
-            if actualMessage == "mainButton":
-                print("Matched main button press")
+                        if registerPatient:
+                            await websocket.send(
+                                build_json_response("SUCCESS", "patientRegisterAck")
+                            )
+                        else:
+                            await websocket.send(
+                                build_json_response(
+                                    "SERVER_EXCEPTION", "Error registering patient"
+                                )
+                            )
 
-                # This selection statement must thus also have the PatientID in the JSON so we know which patient sent the message
-                await relay_message_to_assisters(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
-            
-            # TODO: can we get rid of shorthand and just use the passed 'actualMessage' - the relay_message_to_assisters function will
-            # handle the actual translation into the UI display message either way, this might be a little unnecessary then
+                case "mainButton":
+                    print("Matched main button press")
 
-            if actualMessage == "hugButton":
-                print("[MATCHED BUTTON PRESS] Hug button pressed!")
-                await relay_message_to_assisters(patientID=patientID, shorthand="HUG_BUTTON_PRESSED")
+                    # This selection statement must thus also have the PatientID in the JSON so we know which patient sent the message
+                    await relay_message_to_assisters(patientID=patientID, shorthand="MAIN_BUTTON_PRESSED")
+                
+                # TODO: can we get rid of shorthand and just use the passed 'actualMessage' - the relay_message_to_assisters function will
+                # handle the actual translation into the UI display message either way, this might be a little unnecessary then
 
-            if actualMessage == "stairsButton":
-                print("[MATCHED BUTTON PRESS] Stairs button has been pressed!")
-                await relay_message_to_assisters(patientID=patientID, shorthand="STAIRS_BUTTON_PRESSED")
+                case "hugButton":
+                    print("[MATCHED BUTTON PRESS] Hug button pressed!")
+                    await relay_message_to_assisters(patientID=patientID, shorthand="HUG_BUTTON_PRESSED")
 
-            if actualMessage == "foodButton":
-                print("[MATCHED BUTTON PRESS] Food button presse")
-                await relay_message_to_assisters(patientID=patientID, shorthand="FOOD_BUTTON_PRESSED")
+                case "stairsButton":
+                    print("[MATCHED BUTTON PRESS] Stairs button has been pressed!")
+                    await relay_message_to_assisters(patientID=patientID, shorthand="STAIRS_BUTTON_PRESSED")
 
-            if actualMessage == "waterButton":
-                print("[MATCHED BUTTON PRESS] Water button pressed")
-                await relay_message_to_assisters(patientID=patientID, shorthand="WATER_BUTTON_PRESSED")
+                case "foodButton":
+                    print("[MATCHED BUTTON PRESS] Food button presse")
+                    await relay_message_to_assisters(patientID=patientID, shorthand="FOOD_BUTTON_PRESSED")
 
-            # Now handshake message from an assister
-            if actualMessage == "assister":
-                print("Matched handshake message from an assister")
-                await websocket.send("success")
-                await websocket.send(f"Current time: {datetime.datetime.now()}")
+                case "waterButton":
+                    print("[MATCHED BUTTON PRESS] Water button pressed")
+                    await relay_message_to_assisters(patientID=patientID, shorthand="WATER_BUTTON_PRESSED")
 
-            # Display list of all patients on the current list to the assister frontend
-            if actualMessage == "getAllPatients":
-                print("Matched request for all patients")
-                # await websocket.send(json.dumps(patients))
-                currentPatients = await query_patients()
-                await websocket.send(
-                    build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
-                )
+                # Now handshake message from an assister
+                case "assister":
+                    print("Matched handshake message from an assister")
+                    await websocket.send("success")
+                    await websocket.send(f"Current time: {datetime.datetime.now()}")
+
+                # Display list of all patients on the current list to the assister frontend
+                case "getAllPatients":
+                    print("Matched request for all patients")
+                    # await websocket.send(json.dumps(patients))
+                    currentPatients = await query_patients()
+                    await websocket.send(
+                        build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
+                    )
 
             if actualMessage.startswith("patientReconnect"):
                 # todo: WIP! This is not yet implemented
@@ -312,7 +313,6 @@ async def handler(websocket) -> None:
                     await websocket.send(build_json_response("ASSISTER_REGISTERED", f"Assister registered successfully to patient {targetPatientId}"))
                 else:
                     await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", "Error registering assister"))
-
 
     except websockets.exceptions.ConnectionClosedError as e:
 
