@@ -107,18 +107,7 @@ async function constructJSON(message) {
     );
 }
 
-async function onConnectionEstablished() {
-    // change buttons to active and not greyed out. 
-    log("Received connection established call to activate buttons")
 
-    var sideButtons = document.getElementsByClassName("sidebutton");
-    for (var i = 0; i < sideButtons.length; i++) {
-        sideButtons[i].style.backgroundColor = "#3979f0";
-    }
-
-    var mainButton = document.getElementById("mainHelpButton");
-    mainButton.style.backgroundColor = "#04AA6D";
-}
 
 // initialise the first socket connection
 async function connectToServer() {
@@ -133,7 +122,7 @@ async function connectToServer() {
         // error if the connection is not established
         socket.addEventListener("error", (event) => {
             console.error(event)
-            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}. Please ensure that the accompanying Python websocket handler is running.`, true);
+            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}. Please ensure that the accompanying Python websocket handler is running.`, false);
             socketStatus = 0;
             log("Socket status set to 0 (failed to connect)");
             if (wsUrl === defaultWsUrl) {
@@ -149,7 +138,7 @@ async function connectToServer() {
         // ONLY IF the connection is established:
         socket.addEventListener("open", async (event) => { 
             displayLogAndAlert("[connect/ELOpen] Connection opened successfully", false);
-            await onConnectionEstablished();
+            await buttonChangeOnConnectionEstablished();
             socketStatus = 1;
             log("Set socket status to 1 (connected)");
             socket.send(await constructJSON("Hello, server!"));
@@ -212,7 +201,7 @@ async function connectToServer() {
                     displayLogAndAlert("An assister has joined the session.", false);
                     break;
                 case "patientassist.ASSOCIATE_MATCH_SUCCESS":
-                    displayLogAndAlert("Connection established successfully, and re-associated with a previously connected patient.", false);
+                    displayLogAndAlert("Connection established successfully, and re-associated with a previously connected patient. Good to go! 🚀", false);
                     break;
                 case "patientassist.ASSOCIATE_SUCCESS":
                     displayLogAndAlert("Associated your friendly name to the current patient object for future reconnections.", false);
@@ -234,15 +223,22 @@ async function connectToServer() {
         });
 
         // error if the connection is closed
-        socket.addEventListener("close", (event) => {
+        socket.addEventListener("close", async (event) => {
             if (event.code === 1006) {
+                // New function to change the buttons to grey in case of an event.
+                // This is in the 1006 as this commonly means that the client device has aborted the connection, through something like power-saving-
+                // features on iOS or Android, and so should therefore reload the page, but not after firstly changing the buttons so that, in the 1-
+                // 2 seconds before the page reloads, the user has a visual indicator that the connection has been lost.
+                await buttonChangeOnConnectionClosed();
+
+                // And now, reload the page.
                 autoRefreshPage();
             }
-            displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, true);
             socketStatus = 0;
             log("[connect] Socket status is 0");
             console.log(`Socket closed with code ${event.code} and reason ${event.reason}`);
             console.log(`Status code string is: ${getStatusCodeString(event.code)}`);
+            displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, true);
         }
         );
 
@@ -254,9 +250,13 @@ async function connectToServer() {
     }
 }
 
-function autoRefreshPage() {
-    console.log("Reloading page...");
-    window.location.reload();
+function autoRefreshPage(interval = 100) {
+    setTimeout(() => {
+        log("Reloading page...");
+        statusTextT.innerHTML = "<strong>Connection closed, RELOADING...</strong>"
+        statusTextT.style.color = "#ff0000";
+        window.location.reload();
+    } , interval);
 }
 
 function heartbeat() {

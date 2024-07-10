@@ -80,6 +80,32 @@ function handleChangedWsURL(type) {
     }
 }
 
+
+var sideButtons = document.getElementsByClassName("sidebutton");
+var mainButton = document.getElementById("mainHelpButton");
+
+async function buttonChangeOnConnectionEstablished() {
+    // change buttons to active and not greyed out. 
+    log("Received connection established call to activate buttons")
+
+    for (var i = 0; i < sideButtons.length; i++) {
+        sideButtons[i].style.backgroundColor = "#3979f0";
+    }
+
+    mainButton.style.backgroundColor = "#04AA6D";
+}
+
+async function buttonChangeOnConnectionFailed() {
+    // re-grey out the buttons
+    log("Received connection failed call to grey out buttons")
+
+    for (var i = 0; i < sideButtons.length; i++) {
+        sideButtons[i].style.backgroundColor = "#ffffff";
+    }
+
+    mainButton.style.backgroundColor = "#ffffff";
+}
+
 function hideWsURLBox() {
     msgBoxForWsURL.style.display = "none";
 }

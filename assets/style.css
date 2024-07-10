@@ -21,7 +21,7 @@ html {
     border: none;
     text-align: center;
     text-decoration: none;
-    color: rgb(255, 255, 255);
+    color: #ffffff;
     cursor: pointer;
     margin: 0 6%;
     font-size: 3vw;
@@ -49,10 +49,13 @@ html {
 }
 
 /* TODO: at really large screen sizes (desktopp) just put the buttons on the left to the right, and the buttons on the right to the left of the overall div area. */
-@media (min-width: 1201px) {
+@media (min-width: 12001px) {
     #hugButton, #waterButton {
         /* set to the right of the div */
         align-items: flex-end;
+
+        /* note: for now, this aligns just the text within the button, not the button itself,
+        in future (TODO), change align-items to something else */
     }
 }
 
