@@ -109,7 +109,7 @@ html {
 #patientassiststatus {
     text-align: center;
     align-items: center;
-    background-color: rgb(202, 202, 202);
+    background-color: #cacaca;
     /* Max width calc is logarithmic on larger screens, e.g. as screen width increases, the text box width increases marginally more. */
     height: 6vh;
     vertical-align: middle;
