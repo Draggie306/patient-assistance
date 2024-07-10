@@ -123,7 +123,8 @@ async function connectToServer() {
         // error if the connection is not established
         socket.addEventListener("error", async (event) => {
             console.error(event)
-            if (socketHasBeenOpened) { // if the socket has been opened, then the error is in the connection
+            if (socketHasBeenOpened === true) {
+                log(`${socketHasBeenOpened} is true, so not doing anything.`);
                 statusTextT.innerHTML = "<strong>Error in socket connection, retrying...</strong>"
                 await buttonChangeOnConnectionFailed();
                 autoRefreshPage();
@@ -230,17 +231,17 @@ async function connectToServer() {
 
         // error if the connection is closed
         socket.addEventListener("close", async (event) => {
-            if (event.code === 1006) {
+            if (event.code === 1006 && socketHasBeenOpened === true) {
                 // New function to change the buttons to grey in case of an event.
                 // This is in the 1006 as this commonly means that the client device has aborted the connection, through something like power-saving-
                 // features on iOS or Android, and so should therefore reload the page, but not after firstly changing the buttons so that, in the 1-
                 // 2 seconds before the page reloads, the user has a visual indicator that the connection has been lost.
                 statusTextT.innerHTML = "<strong>Error in socket connection, retrying...</strong>"
-                await buttonChangeOnConnectionClosed();
 
                 // And now, reload the page.
                 await autoRefreshPage();
             }
+            await buttonChangeOnConnectionFailed();
             socketStatus = 0;
             log("[connect] Socket status is 0");
             console.log(`Socket closed with code ${event.code} and reason ${event.reason}`);

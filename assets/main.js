@@ -100,10 +100,10 @@ async function buttonChangeOnConnectionFailed() {
     log("Received connection failed call to grey out buttons")
 
     for (var i = 0; i < sideButtons.length; i++) {
-        sideButtons[i].style.backgroundColor = "#ffffff";
+        sideButtons[i].style.backgroundColor = "#f0f0f0" /* took ages to find this colour */
     }
 
-    mainButton.style.backgroundColor = "#ffffff";
+    mainButton.style.backgroundColor = "#f0f0f0";
 }
 
 function hideWsURLBox() {
