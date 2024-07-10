@@ -322,8 +322,14 @@ async def handler(websocket) -> None:
         print(f"Traceback: {traceback.format_exc()}")
         print(f"Connection closed: {e}")
         if patientID in patients:
-            print(f"Removing patient {patientID} from patients list")
-            del patients[patientID]
+            if e.code == 1006:
+                current_time = datetime.datetime.now()
+                print(f"Patient {patientID} disconnected unexpectedly with code 1006; not removing from patients list [{current_time}]")
+                patients[patientID].is_disconnected = True
+                patients[patientID].disconnected_at = current_time
+            else:
+                print(f"Removing patient {patientID} from patients list")
+                del patients[patientID]
         else:
             print(f"Patient {patientID} not found in patients list")
 
