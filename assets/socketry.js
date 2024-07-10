@@ -120,17 +120,19 @@ async function connectToServer() {
         socket = new WebSocket(wsUrl);
         
         // error if the connection is not established
-        socket.addEventListener("error", (event) => {
+        socket.addEventListener("error", async (event) => {
             console.error(event)
-            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event}. Please ensure that the accompanying Python websocket handler is running.`, false);
+            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event.type} [${event.message}, ${socket.readyState}, ${event.code}]`, true);
             socketStatus = 0;
             log("Socket status set to 0 (failed to connect)");
             if (wsUrl === defaultWsUrl) {
-                let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is inthe GitHub repo.";
+                let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is in the GitHub repo. Refreshing in 10 seconds...";
                 // let t_old = `The default WebSocket URL is being used! If the buttons below are grey, please input the correct server URL and refresh the page.`;
                 statusTextT.innerHTML = t;
                 statusTextT.style.color = "#ff0000";
                 handleChangedWsURL(3); // Shows the box to allow user to change wsURL
+                await buttonChangeOnConnectionFailed();
+                autoRefreshPage(10000);
             }
             throw new Error("Error in socket connection.");
         });
