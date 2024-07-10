@@ -147,6 +147,7 @@ async function connectToServer() {
             displayLogAndAlert("[connect/ELOpen] Connection opened successfully", false);
             await buttonChangeOnConnectionEstablished();
             socketStatus = 1;
+            socketHasBeenOpened = true;
             log("Set socket status to 1 (connected)");
             socket.send(await constructJSON("Hello, server!"));
             log("Custom handshake message (Hello, server!) sent to server from patient");
