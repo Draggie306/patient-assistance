@@ -17,6 +17,7 @@ var statusTextT = document.getElementById("hiddenTopText"); // top p element
 let socketStatus = null; // do not assume that the socket is connected
 let socket = null;
 const defaultWsUrl = "ws://192.168.1.68:8001"; // default but can be changed, just easier for development
+var socketHasBeenOpened = false;
 
 var errSound = new Audio("../assets/sounds/error.mp3");
 
@@ -122,19 +123,23 @@ async function connectToServer() {
         // error if the connection is not established
         socket.addEventListener("error", async (event) => {
             console.error(event)
-            displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event.type} [${event.message}, ${socket.readyState}, ${event.code}]`, true);
-            socketStatus = 0;
-            log("Socket status set to 0 (failed to connect)");
-            if (wsUrl === defaultWsUrl) {
-                let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is in the GitHub repo. Refreshing in 10 seconds...";
-                // let t_old = `The default WebSocket URL is being used! If the buttons below are grey, please input the correct server URL and refresh the page.`;
-                statusTextT.innerHTML = t;
-                statusTextT.style.color = "#ff0000";
-                handleChangedWsURL(3); // Shows the box to allow user to change wsURL
+            if (socketHasBeenOpened) { // if the socket has been opened, then the error is in the connection
+                statusTextT.innerHTML = "<strong>Error in socket connection, retrying...</strong>"
                 await buttonChangeOnConnectionFailed();
-                autoRefreshPage(10000);
+                autoRefreshPage();
+            } else {
+                displayLogAndAlert(`Error in socket connection to ${event.currentTarget.url}, error ${event.type} [${event.message}, ${socket.readyState}, ${event.code}]`, true);
+                socketStatus = 0;
+                log("Socket status set to 0 (failed to connect)");
+                if (wsUrl === defaultWsUrl) {
+                    let t = "You need to change the default WebSocket URL to the one of your WebSocket forwarder instance; an exemplar Python script is in the GitHub repo. Refreshing in 10 seconds...";
+                    // let t_old = `The default WebSocket URL is being used! If the buttons below are grey, please input the correct server URL and refresh the page.`;
+                    statusTextT.innerHTML = t;
+                    statusTextT.style.color = "#ff0000";
+                    handleChangedWsURL(3); // Shows the box to allow user to change wsURL
+                }
+                throw new Error("Error in socket connection.");
             }
-            throw new Error("Error in socket connection.");
         });
 
         // ONLY IF the connection is established:
@@ -220,8 +225,6 @@ async function connectToServer() {
                     displayLogAndAlert(`${message}`, true); // Ensure msg is displayed as a string
                     break;
             }
-        
-
         });
 
         // error if the connection is closed
@@ -231,6 +234,7 @@ async function connectToServer() {
                 // This is in the 1006 as this commonly means that the client device has aborted the connection, through something like power-saving-
                 // features on iOS or Android, and so should therefore reload the page, but not after firstly changing the buttons so that, in the 1-
                 // 2 seconds before the page reloads, the user has a visual indicator that the connection has been lost.
+                statusTextT.innerHTML = "<strong>Error in socket connection, retrying...</strong>"
                 await buttonChangeOnConnectionClosed();
 
                 // And now, reload the page.
@@ -240,7 +244,7 @@ async function connectToServer() {
             log("[connect] Socket status is 0");
             console.log(`Socket closed with code ${event.code} and reason ${event.reason}`);
             console.log(`Status code string is: ${getStatusCodeString(event.code)}`);
-            displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, true);
+            displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, false);
         }
         );
 
