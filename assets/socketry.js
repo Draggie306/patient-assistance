@@ -239,7 +239,7 @@ async function connectToServer() {
                 await buttonChangeOnConnectionClosed();
 
                 // And now, reload the page.
-                autoRefreshPage();
+                await autoRefreshPage();
             }
             socketStatus = 0;
             log("[connect] Socket status is 0");
@@ -257,7 +257,7 @@ async function connectToServer() {
     }
 }
 
-function autoRefreshPage(interval = 100) {
+async function autoRefreshPage(interval = 100) {
     setTimeout(() => {
         log("Reloading page...");
         statusTextT.innerHTML = "<strong>Connection closed, RELOADING...</strong>"
