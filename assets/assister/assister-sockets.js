@@ -134,8 +134,10 @@ async function connectToServer() {
                 displayAllPatients(decodeJSON(decodedMessage["message"]));
             } else if (shorthandResponse === "patientassist.ASSISTER_REGISTERED") {
                 log("[assister/ASSISTER_REGISTERED_EVENT] Registered as assister successfully.")
-                window.alert("Registered as assister successfully.");
+                // window.alert("Registered as assister successfully.");
                 document.getElementById("patientList").innerHTML = "Waiting for patient to send message...";
+                hideInputIdentifierInputBox();
+                clearMessageHistory();
             } else if (shorthandResponse === "patientassist.ASSISTER_REGISTER_FAILED") {
                 log("[assister/ASSISTER_REGISTER_FAILED] Failed to register as assister.")
                 window.alert("Failed to register as assister.");
@@ -143,55 +145,55 @@ async function connectToServer() {
 
 
             // check for ACTUAL *manual* messages from the patient
-            
-            /* if shorthand == "MAIN_BUTTON_PRESSED":
-                newMessage = "Patient pressed the HELP button!"
-        elif shorthand == "HUG_BUTTON_PRESSED":
-            newMessage = "The patient wants a hug."
-        elif shorthand == "STAIRS_BUTTON_PRESSED":
-            newMessage = "The patient needs help with going up or down the stairs."
-        elif shorthand == "FOOD_BUTTON_PRESSED":
-            newMessage = "Patient wants food!"
-        elif shorthand == "WATER_BUTTON_PRESSED":
-            newMessage = "Patient needs water - fizzy or still?"
-            */
+            var msgtoShowAsHistory = null;
 
             if (shorthandResponse === "patientassist.PATIENT_MESSAGE") {
                 log("[assister/PATIENT_MESSAGE] Received message from patient.")
                 window.alert(`Message from patient: ${decodedMessage["message"]}`);
+                msgtoShowAsHistory = decodedMessage["message"];
             } else if (shorthandResponse === "MAIN_BUTTON_PRESSED") {
                 log("[assister/MAIN_BUTTON_PRESSED] Main button pressed by patient.")
                 playSound(ding);
                 playSound(airhorn);
                 notifyMe("Patient needs assistance!");
+                msgtoShowAsHistory = "<strong>Patient pressed the main HELP button!</strong>";
 
                 //window.alert("Main button pressed by patient."); // tested and working
             } else if (shorthandResponse === "HUG_BUTTON_PRESSED") {
                 log("[assister/HUG_BUTTON_PRESSED] Hug button pressed by patient.")
                 playSound(ding);
                 notifyMe("Patient wants a hug!");
+                msgtoShowAsHistory = "Patient pressed the HUG button!";
                 //window.alert("Hug button pressed by patient."); //tested 09/07/2024 07:38 working
             } else if (shorthandResponse === "STAIRS_BUTTON_PRESSED") {
                 log("[assister/STAIRS_BUTTON_PRESSED] Stairs button pressed by patient.")
                 playSound(ding);
                 notifyMe("Patient needs help with stairs!");
+                msgtoShowAsHistory = "Patient pressed the STAIRS button!";
                 //window.alert("Stairs button pressed by patient."); // tested 09/07/2024 07:44 working
             } else if (shorthandResponse === "FOOD_BUTTON_PRESSED") {
                 log("[assister/FOOD_BUTTON_PRESSED] Food button pressed by patient.")
                 playSound(ding);
                 notifyMe("Patient is hungry!");
+                msgtoShowAsHistory = "Patient pressed the FOOD button!";
                 //window.alert("Food button pressed by patient."); // tested 09/07/2024 07:51 working
             } else if (shorthandResponse === "WATER_BUTTON_PRESSED") {
                 log("[assister/WATER_BUTTON_PRESSED] Water button pressed by patient.")
                 playSound(ding);
                 notifyMe("Patient needs water!");
+                msgtoShowAsHistory = "Patient pressed the WATER button!";
                 //window.alert("Water button pressed by patient."); // tested 09/07/2024 07:59 working
             } else {
                 log(`[assister/MESSAGE] Message with shorthand from server: ${decodedMessage["message"]}`);
                 // ding.play();
                 // notifyMe(decodedMessage["message"]);
                 // displayLogAndAlert(decodedMessage["message"], false); // should work, haven't tried
+                msgtoShowAsHistory = decodedMessage["message"];
             }
+
+
+            // Using the addMessageToHistory function, pass in the message
+            addMessageToHistory(msgtoShowAsHistory);
         });
 
         socket.addEventListener("close", (event) => {

@@ -70,5 +70,34 @@ inputPatientId.addEventListener("keypress", function (e) {
         registerAsAssister(patientId.trim());
 
         inputPatientId.value = "";
+
     }
 });
+
+function hideInputIdentifierInputBox() {
+    inputPatientId.style.display = "none";
+    log("Patient ID box hidden.");
+}
+
+var wsHistory = document.getElementById("wsHistory"); // P tag to display the history of the websocket connection
+
+function clearMessageHistory() {
+    wsHistory.innerHTML = "";
+}
+
+function addMessageToHistory(message) {
+    var time = new Date();
+
+    /* // taken from https://stackoverflow.com/questions/18229022/how-to-show-current-time-in-javascript-in-the-format-hhmmss
+    console.log(
+        ("0" + time.getHours()).slice(-2)   + ":" + 
+        ("0" + time.getMinutes()).slice(-2) + ":" + 
+        ("0" + time.getSeconds()).slice(-2)
+    );
+    */
+
+    log(`[addMessageToHistory] ${("0" + time.getHours()).slice(-2)}:${("0" + time.getMinutes()).slice(-2)}:${("0" + time.getSeconds()).slice(-2)}: ${message}`, 1);
+    wsHistory.innerHTML = `${("0" + time.getHours()).slice(-2)}:${("0" + time.getMinutes()).slice(-2)}:${("0" + time.getSeconds()).slice(-2)}: ${message}<br>${wsHistory.innerHTML}`;
+
+    //wsHistory.innerHTML = `${Date.now()}: ${message}<br>${wsHistory.innerHTML}`;
+}
