@@ -15,7 +15,8 @@ try {
 async function notifyMe(message) { 
     if (!("Notification" in window)) {
       // Check if the browser supports notifications
-      alert("This browser does not support desktop notification");
+      //alert("This browser does not support desktop notification");
+      console.log("not displaying notification as browser does not support it")
     } else if (Notification.permission === "granted") {
       // Check whether notification permissions have already been granted;
       // if so, create a notification

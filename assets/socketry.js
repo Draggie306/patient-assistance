@@ -1,7 +1,16 @@
 console.log("Socketry (not sorcery) script loaded.");
 
 
-let clientID = new Date().getTime(); // somewhat redundant as server will just use the websocket instance ID
+
+if (localStorage.getItem("friendlyName") === null) {
+    localStorage.setItem("friendlyName", `${new Date().getTime()}`);
+    console.log("Generated new friendly name for the patient.");
+}
+
+let clientID = localStorage.getItem("friendlyName");
+//new Date().getTime(); // somewhat redundant as server will just use the websocket instance ID
+
+
 let userAgent = navigator.userAgent;
 var statusTextP = document.getElementById("defaultHiddenStatusText");
 var statusTextT = document.getElementById("hiddenTopText"); // top p element
@@ -143,7 +152,7 @@ function connectToServer() {
             if (localStorage.getItem("friendlyName") !== null) {
                 // if the friendlyName is already set, the user want to be aBle to be reconnected.
                 var friendlyName = localStorage.getItem("friendlyName");
-                socket.send(constructJSON(`associateNameToPatientObject:${friendlyName}`)); 
+                socket.send(constructJSON(`associateNameToPatientObject;${friendlyName}`)); // no way, the colon before was causing the error
                 //n.b.  patientID to associate the object with the friendlyName is built into the constructJSON function
             }
 
@@ -219,6 +228,9 @@ function connectToServer() {
 
         // error if the connection is closed
         socket.addEventListener("close", (event) => {
+            if (event.code === 1006) {
+                autoRefreshPage();
+            }
             displayLogAndAlert(`Socket connection was closed! Code: ${event.code}, reason: ${getStatusCodeString(event.code)}`, true);
             socketStatus = 0;
             log("[connect] Socket status is 0");
@@ -235,6 +247,10 @@ function connectToServer() {
     }
 }
 
+function autoRefreshPage() {
+    console.log("Reloading page...");
+    window.location.reload();
+}
 
 function heartbeat() {
     // Send a heartbeat to the server
