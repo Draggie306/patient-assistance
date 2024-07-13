@@ -141,6 +141,12 @@ async function connectToServer() {
             } else if (shorthandResponse === "patientassist.ASSISTER_REGISTER_FAILED") {
                 log("[assister/ASSISTER_REGISTER_FAILED] Failed to register as assister.")
                 window.alert("Failed to register as assister.");
+            } else if (shorthandResponse === "patientassist.OFFLINE_CONNECT_SUCCESS") {
+                log("[assister/OFFLINE_CONNECT_SUCCESS] Successfully associated with a patient device that is offline.")
+                window.alert("Successfully associated with a patient device that is offline.");
+            } else if (shorthandResponse === "patientassist.OFFLINE_CONNECT_FAILED") {
+                log("[assister/OFFLINE_CONNECT_FAILED] There was an error connecting to an offline patient device.")
+                window.alert("There was an error connecting to an offline patient device.");
             }
 
 

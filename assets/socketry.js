@@ -189,7 +189,7 @@ async function connectToServer() {
                     }
                     break;
                 case "patientassist.NO_ASSISTERS":
-                    displayLogAndAlert("⚠️ No assister devices are currently connected.", true);
+                    displayLogAndAlert("⚠️ No assister devices are currently connected. Please let them know in-person that you are on this screen.", true);
                     break;
                 case "patientassist.ERROR_FORWARDING":
                     displayLogAndAlert("⚠️ Error whilst forwarding the message to assisters.", false);
@@ -217,6 +217,12 @@ async function connectToServer() {
                     break;
                 case "patientassist.ASSOCIATE_ERROR":
                     displayLogAndAlert("⚠️ Error in peforming the associations with the friendly name.", true);
+                    break;
+                case "patientassist.NEW_ASSISTER_OFFLINE_CONNECT_SUCCESS":
+                    displayLogAndAlert("🚀 An assister device has been connected whilst this device was offline.", false)
+                    break;
+                case "patientassist.NEW_ASSISTER_OFFLINE_CONNECT_FAILED":
+                    displayLogAndAlert("⚠️ An assister device tried to connect whilst this device was offline, but failed.", true)
                     break;
                 case "patientassist.FORWARDING_SUCCESS":
                     displayLogAndAlert(message, false);
