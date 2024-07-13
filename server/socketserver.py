@@ -28,22 +28,25 @@ class Patient:
     async def send(self, message: str) -> None:
         await self.websocket.send(message)
 
-    async def addJoinedAssister(self, websocket) -> None:
+    async def addJoinedAssister(self, websocket, expectingOffline: Optional[bool] = False) -> bool:
         try:
             await self.websocket.send(build_json_response("ASSISTER_JOINED", f"Assister joined successfully to patient {self.patientID}")) # notify the patient that an assister has joined
-
-            # create new assister object and add to the list of joined assisters
-            #newAssister = Assister(websocket, self.patientID)
-            #self.joinedAssister.append(newAssister)
-            #assisters[websocket] = newAssister
-            # NOTE DON'T do this. just don't. keep the assister object in the patient object, not in the global dict
-
-
             # If the websocket send is successful, add the assister to the list of joined assisters
             self.joinedAssister.append(websocket)
             print(f"[debug/patient_object] Added assister {websocket} to patient {self.patientID}; length of joinedAssister: {len(self.joinedAssister)}")
             return True
         except websockets.exceptions.ConnectionClosed as e:
+            print(f"[debug/patient_object] Connection closed interrupted adding assister to patient {self.patientID} ({e})")
+            
+            # But, if we are expecting the patient to be offline (i.e. incoming binary message is == "offlinePatientConnect;friendlyName"), then 
+            # we should still add the assister to the list of joined assisters. On the client-side, this is ensured by the assister remembering a
+            # previous reconnection via the friendly name.
+
+            if expectingOffline:
+                self.joinedAssister.append(websocket)
+                print(f"[debug/patient_object] Added assister {websocket} to patient {self.patientID} (offline); length of joinedAssister: {len(self.joinedAssister)}")
+                return True
+
             print(f"[debug/patient_object] Error adding assister to patient {self.patientID}: {e}")
             return False
 
@@ -162,7 +165,7 @@ async def handler(websocket) -> None:
             # reduce the number of comparisons needed. (or using elif instead of if for each case?)
 
             match actualMessage:
-                case "ping": # case for heartbeat
+                case "ping":  # case for heartbeat
                     if actualMessage == "ping":
                         # TODO: heartbeats don't seem to keep the connection alive on mobile, so will need to have a "reconnect" automatic feature 
                         # thingy on the client, matched somewhere here :)
@@ -174,10 +177,6 @@ async def handler(websocket) -> None:
 
                 case "Hello, server!":
                     print("Matched handshake message from a patient")
-                    # await websocket.send("success")
-
-
-
                     # Check if the patient with the current patientID is already registered
                     if patientID in patients:
                         print(f"Patient {patientID} is already registered")
@@ -241,9 +240,52 @@ async def handler(websocket) -> None:
                         build_json_response("GETALLPATIENTS_SUCCESS", currentPatients)
                     )
 
+            # Cases for when there are incoming messages that incldue both the code and the message in the message itself (for client simplicity)
+
+            if actualMessage.startswith("offlinePatientConnect"):
+                # Case for when the websocket is unable to deliver the assister join request to a patient that is offline. In this case,
+                # we should still allow the assister to join the aptient and thus receive messages from the patient
+
+                friendlyName = actualMessage.split(";")
+                if len(patientID) != 2:
+                    return await websocket.send(
+                        build_json_response(
+                            "ERROR_PARSING", "malformatted request"
+                            )
+                        )
+                
+                friendlyName = friendlyName[1]
+                print(f"Matched request to connect to offline patient with id {friendlyName}")
+
+                # Iterate over the patients list to find a patient with the same friendly name...
+                matchedPatient = False
+                for patient in patients:
+                    if patients[patient].friendlyName == friendlyName:
+                        matchedPatient = True
+                        print(f"Found patient with friendly name {friendlyName}")
+
+                        # The websocket parameter is the calling assister's websocket object.
+
+                        resp = await patients[patient].addJoinedAssister(websocket)
+
+                        if (resp):
+                            await websocket.send(
+                                build_json_response(
+                                    "OFFLINE_CONNECT_SUCCESS",
+                                    f"Connected to offline patient with friendly name {friendlyName}"
+                                    )
+                                )
+
+                        else:
+                            await websocket.send(
+                                build_json_response(
+                                    "OFFLINE_CONNECT_FAILED",
+                                    "Error connecting to offline patient"
+                                    )
+                                )
+
+            # [PATIENT] Reconnect a patient's new connection websocket with their old patient object, keeping all associated assisters
             if actualMessage.startswith("patientReconnect"):
-                # todo: WIP! This is not yet implemented
-                # Reconnect to a patient that has disconnected, using the friendly name
                 friendlyName = actualMessage.split(";")
                 if len(friendlyName) != 2:
                     return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
@@ -260,6 +302,7 @@ async def handler(websocket) -> None:
                         await patients[patient].addJoinedAssister(websocket)
                         return await websocket.send(build_json_response("RECONNECT_SUCCESS", f"Reconnected to patient with friendly name {friendlyName}"))
 
+            # [PATIENT] Associate a friendly name to a patient object. (determined by datetime in client-side.)
             if actualMessage.startswith("associateNameToPatientObject"):
                 try:
                     # get the friendly name from the message
@@ -299,6 +342,7 @@ async def handler(websocket) -> None:
                     print(f"Error associating friendly name to patient object: {e}")
                     await websocket.send(build_json_response("ASSOCIATE_ERROR", f"Error associating friendly name to patient object: {e}"))
 
+            # [ASSISTER] Register as a device that can receive incoming messages from a patient. (connects to patient oo.)
             if actualMessage.startswith("registerAsAssister"):
                 targetPatientId = actualMessage.split(";")
                 if len(targetPatientId) != 2:
@@ -347,15 +391,6 @@ async def register_patient(websocket, patientID, userAgent) -> bool:
         return False
 
 
-friendlyNameMapper = {}
-
-async def handle_reconnects(friendlyName: str) -> None:
-    """
-    Handles reconnections to patients that have disconnected.
-    """
-    pass
-
-
 async def query_patients() -> None:
     """
     Incoming call from assister view page to display all patients in the current list, their IDs, UserAgents, and total number of assisters.
@@ -389,19 +424,19 @@ async def relay_message_to_assisters(patientID, shorthand: Optional[str] = "PATI
 
     patient = patients[patientID]
 
-    # TODO: again use a switch/case statement here instead of if/elif
-    if shorthand == "MAIN_BUTTON_PRESSED":
-        newMessage = "Patient pressed the HELP button!"
-    elif shorthand == "HUG_BUTTON_PRESSED":
-        newMessage = "The patient wants a hug."
-    elif shorthand == "STAIRS_BUTTON_PRESSED":
-        newMessage = "The patient needs help with going up or down the stairs."
-    elif shorthand == "FOOD_BUTTON_PRESSED":
-        newMessage = "Patient wants food!"
-    elif shorthand == "WATER_BUTTON_PRESSED":
-        newMessage = "Patient needs water - fizzy or still?"
-    else:
-        newMessage = "Patient sent a message!"
+    match shorthand:
+        case "MAIN_BUTTON_PRESSED":
+            newMessage = "Patient pressed the HELP button!"
+        case "HUG_BUTTON_PRESSED":
+            newMessage = "The patient wants a hug."
+        case "STAIRS_BUTTON_PRESSED":
+            newMessage = "The patient needs help with going up or down the stairs."
+        case "FOOD_BUTTON_PRESSED":
+            newMessage = "Patient wants food!"
+        case "WATER_BUTTON_PRESSED":
+            newMessage = "Patient needs water - fizzy or still?"
+        case _:
+            "Patient sent a message!"
 
     x = await patient.messageAllAssisters(newMessage, shorthand)
     if x is None or x == 0:  # obviously no assisters were found is the same as x being none
@@ -414,31 +449,3 @@ async def relay_message_to_assisters(patientID, shorthand: Optional[str] = "PATI
 if __name__ == "__main__":
     print("running!")
     asyncio.run(main())
-
-
-"""
-class SocketServer:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-
-    async def start(self):
-        async with websockets.serve(self.handler, self.host, self.port):
-            await asyncio.Future()  # run forever
-
-    async def handler(self, websocket, path):
-        while True:
-            data = await websocket.recv()
-            await websocket.send(data)
-
-    # Print received data
-    async def on_message(self, data):
-        print(data)
-
-
-print("Starting server")
-
-server = SocketServer("localhost", 8080)
-asyncio.get_event_loop().run_until_complete(server.start())
-
-"""
