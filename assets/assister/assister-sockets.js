@@ -159,7 +159,7 @@ async function connectToServer() {
                 window.alert("There was an error connecting to an offline patient device.");
             } else if (shorthandResponse === "patientassist.OFFLINE_CONNECT_FAILED_NONE") {
                 log("[assister/OFFLINE_CONNECT_FAILED_NONE] Tried to register as an assister for an offline patient, but none was found that matched the ID.")
-                window.alert("No offline patient found with that ID.");
+                window.alert("No patient with that ID was found. They must register at least once.");
             }
 
             // check for ACTUAL *manual* messages from the patient

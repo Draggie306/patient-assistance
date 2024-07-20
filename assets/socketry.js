@@ -109,6 +109,14 @@ async function constructJSON(message) {
 }
 
 
+// check socket connection every second. If it's not connected, change the buttons to grey.
+setInterval(async function checkSocketConnection() {
+    console.log(`Checking socket connection status: ${socketStatus}`);
+    if (socketStatus === 0) {
+        await buttonChangeOnConnectionFailed();
+    }
+}, 1000);
+
 
 // initialise the first socket connection
 async function connectToServer() {
