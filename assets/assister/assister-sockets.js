@@ -121,6 +121,13 @@ async function connectToServer() {
             // localStorage.setItem("lastPatient", getPreviouslyConnectedPatient());
             // log("Set lastPatient to the patientID");
             getAllPatients();
+
+
+            if (localStorage.getItem("lastPatient") !== null) {
+                displayReconnectMessage();
+            } else {
+                log("[DOMContentLoaded] No previous patient found.");
+            }
         }); 
 
         // Listen for messages - this will be for the recipient side.
@@ -150,8 +157,10 @@ async function connectToServer() {
             } else if (shorthandResponse === "patientassist.OFFLINE_CONNECT_FAILED") {
                 log("[assister/OFFLINE_CONNECT_FAILED] There was an error connecting to an offline patient device.")
                 window.alert("There was an error connecting to an offline patient device.");
+            } else if (shorthandResponse === "patientassist.OFFLINE_CONNECT_FAILED_NONE") {
+                log("[assister/OFFLINE_CONNECT_FAILED_NONE] Tried to register as an assister for an offline patient, but none was found that matched the ID.")
+                window.alert("No offline patient found with that ID.");
             }
-
 
             // check for ACTUAL *manual* messages from the patient
             var msgtoShowAsHistory = null;
@@ -246,7 +255,19 @@ async function registerAsAssister(patientID) {
 async function reconnectToPreviousPatient(patientID) {
     // specialised function to register as an assister for an offline patient.
     // well, they might be online, but this is for saved/resumed connections from the assister device.
-    sendAsync(constructJSON(`renewAssisterConnectionOffline;${patientID}`));
+    /*let patientID = getPreviouslyConnectedPatient();
+
+    if (patientID === null) {
+        log("[reconnectToPreviousPatient] No previous patient found.");
+        window.alert("No previous patient found.");
+        return;
+    }
+    */
+
+    newpatientid = localStorage.getItem("lastPatient");
+
+    console.log(`Sending reconnection req with previous patient ${newpatientid}`);
+    sendAsync(constructJSON(`renewAssisterConnectionOffline;${newpatientid}`));
 }
 
 // TODO: copy async function into main.js patient side script.

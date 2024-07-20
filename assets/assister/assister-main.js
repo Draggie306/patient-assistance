@@ -97,7 +97,7 @@ inputPatientId.addEventListener("keypress", function (e) {
         
         // New: add the patient ID to the localStorage
         localStorage.setItem("lastPatient", patientId);
-        log(`[localStorage] Added patient ID ${patientId} to localStorage.`);
+        log(`[localStorage] Added patient ID ${patientId} as lastPatient in localStorage.`);
 
         inputPatientId.value = "";
 
@@ -108,11 +108,15 @@ inputPatientId.addEventListener("keypress", function (e) {
 
 function displayReconnectMessage() {
     log("[displayReconnectMessage] Displaying reconnect message.");
-    var reconnectMessage = document.createElement("div");
-    reconnectMessage.innerHTML = `<p>Would you like to reconnect to the previous patient?</p>
-    <button onclick="reconnectToPreviousPatient()">Yes</button>
-    <button onclick="clearPreviousPatient()">No</button>`;
-    document.body.appendChild(reconnectMessage);
+
+    let x = getPreviouslyConnectedPatient();
+
+    if (x !== null) {
+        console.log(x);
+        reconnectToPreviousPatient(x);
+    } else {
+        log("[displayReconnectMessage] User opted not to reconnect to previous patient.");
+    }
 }
 
 function clearPreviousPatient() {
@@ -120,6 +124,9 @@ function clearPreviousPatient() {
     localStorage.removeItem("lastPatient");
     log("Cleared previous patient successfully.");
 }
+
+
+
 
 function hideInputIdentifierInputBox() {
     inputPatientId.style.display = "none";
