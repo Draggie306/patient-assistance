@@ -40,6 +40,29 @@ function getPreviouslyConnectedWsURL() {
     }
 }
 
+function getPreviouslyConnectedPatient() {
+    console.log("[getPrevConn] Checking for previous patient");
+
+    // Check localStorage for "lastPatient" key
+    if (localStorage.getItem("lastPatient") !== null) {
+        // if it exists, return the value
+        log(`[getPrevConn] Found a previous patient: ${localStorage.getItem("lastPatient")}`);
+
+        // Confirm taken from: https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm.
+        if (confirm(`Would you like to assist the previous patient, ${localStorage.getItem("lastPatient")}?`)) {
+            // if yes, return the patient ID
+            return localStorage.getItem("lastPatient");
+        } else {
+            // if no, clear the localStorage value and return null
+            localStorage.removeItem("lastPatient");
+            return null;
+        }
+    } else {
+        log("[getPrevConn] Determined that there has been no previous patient.");
+        return null;
+    }
+}
+
 function handleChangedWsURL(type) {
     if (type === 1) {
         console.log(msgBoxForWsURL)
@@ -67,12 +90,36 @@ inputPatientId.addEventListener("keypress", function (e) {
         var patientId = inputPatientId.value;
         log(`Patient ID entered: ${patientId}`);
 
-        registerAsAssister(patientId.trim());
+        patientId = patientId.trim();
+        log(`Cleaned patient ID: ${patientId}`);
+        
+        registerAsAssister(patientId);
+        
+        // New: add the patient ID to the localStorage
+        localStorage.setItem("lastPatient", patientId);
+        log(`[localStorage] Added patient ID ${patientId} to localStorage.`);
 
         inputPatientId.value = "";
 
     }
 });
+
+// Display "Would you like to reconnect to the previous patient?" message
+
+function displayReconnectMessage() {
+    log("[displayReconnectMessage] Displaying reconnect message.");
+    var reconnectMessage = document.createElement("div");
+    reconnectMessage.innerHTML = `<p>Would you like to reconnect to the previous patient?</p>
+    <button onclick="reconnectToPreviousPatient()">Yes</button>
+    <button onclick="clearPreviousPatient()">No</button>`;
+    document.body.appendChild(reconnectMessage);
+}
+
+function clearPreviousPatient() {
+    log("[clearPreviousPatient] Clearing previous patient.");
+    localStorage.removeItem("lastPatient");
+    log("Cleared previous patient successfully.");
+}
 
 function hideInputIdentifierInputBox() {
     inputPatientId.style.display = "none";
