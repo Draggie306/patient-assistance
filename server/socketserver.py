@@ -254,6 +254,7 @@ async def handler(websocket) -> None:
 
                 if len(friendlyName) != 2:
                     return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
+                friendlyName = friendlyName[1]  # Can't believe I forgot to add this line, I'm so dumb
 
                 matchedPatient = False
                 for patient in patients:
