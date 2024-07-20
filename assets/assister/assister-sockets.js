@@ -117,6 +117,9 @@ async function connectToServer() {
             sendAsync(constructJSON("assisterConnected"));
             log("Message sent to server.");
 
+            // New for offline patient linking: set lastPatient to the patientID
+            // localStorage.setItem("lastPatient", getPreviouslyConnectedPatient());
+            // log("Set lastPatient to the patientID");
             getAllPatients();
         }); 
 
@@ -238,6 +241,12 @@ async function registerAsAssister(patientID) {
     // Register as an assister for a patient
     log(`Registering as assister for patient ${patientID}`);
     sendAsync(constructJSON(`registerAsAssister;${patientID}`));
+}
+
+async function reconnectToPreviousPatient(patientID) {
+    // specialised function to register as an assister for an offline patient.
+    // well, they might be online, but this is for saved/resumed connections from the assister device.
+    sendAsync(constructJSON(`renewAssisterConnectionOffline;${patientID}`));
 }
 
 // TODO: copy async function into main.js patient side script.
