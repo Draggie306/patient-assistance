@@ -154,12 +154,17 @@ async def handler(websocket) -> None:
                         "ERROR_PARSING", f"Required fields not present: {e}"
                     )
                 )
+            except TypeError as e:
+                print(f"Error parsing message: {e}")
+                return await websocket.send(
+                    build_json_response("ERROR_PARSING", f"Couldn't parse the message: {e}")
+                )
+
             except Exception as e:
                 print(f"Error parsing message: {e}")
                 return await websocket.send(
                     build_json_response("ERROR_PARSING", f"Couldn't parse the message, ensure binary data is encoded with utf-8: {e}")
                 )
-            
 
             # TODO: can we swich/case this long if statement instead? There will not be multiple cases for the same message, so this would
             # reduce the number of comparisons needed. (or using elif instead of if for each case?)
@@ -241,6 +246,40 @@ async def handler(websocket) -> None:
                     )
 
             # Cases for when there are incoming messages that incldue both the code and the message in the message itself (for client simplicity)
+
+            if actualMessage.startswith("renewAssisterConnectionOffline"):
+                # Registers an assister to an offline patient.
+                print("Matched request for assister to pair the assister to a potentially offline patient")
+                friendlyName = actualMessage.split(";")
+
+                if len(friendlyName) != 2:
+                    return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
+
+                matchedPatient = False
+                for patient in patients:
+                    if patients[patient].friendlyName == friendlyName:
+                        matchedPatient = True
+                        print(f"Found patient with friendly name {friendlyName}")
+
+                        # The websocket parameter is the calling assister's websocket object.
+
+                        resp = await patients[patient].addJoinedAssister(websocket=websocket, expectingOffline=True)
+
+                        if (resp):
+                            await websocket.send(
+                                build_json_response(
+                                    "OFFLINE_CONNECT_SUCCESS",
+                                    f"Connected to offline patient with friendly name {friendlyName}"
+                                    )
+                                )
+
+                        else:
+                            await websocket.send(
+                                build_json_response(
+                                    "OFFLINE_CONNECT_FAILED",
+                                    "Error connecting to offline patient"
+                                    )
+                                )
 
             if actualMessage.startswith("offlinePatientConnect"):
                 # Case for when the websocket is unable to deliver the assister join request to a patient that is offline. In this case,
@@ -342,7 +381,7 @@ async def handler(websocket) -> None:
                     print(f"Error associating friendly name to patient object: {e}")
                     await websocket.send(build_json_response("ASSOCIATE_ERROR", f"Error associating friendly name to patient object: {e}"))
 
-            # [ASSISTER] Register as a device that can receive incoming messages from a patient. (connects to patient oo.)
+            # [ASSISTER] Register as a device that can receive incoming messages from a patient. (connects to patient too.)
             if actualMessage.startswith("registerAsAssister"):
                 targetPatientId = actualMessage.split(";")
                 if len(targetPatientId) != 2:
