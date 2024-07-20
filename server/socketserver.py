@@ -28,7 +28,7 @@ class Patient:
     async def send(self, message: str) -> None:
         await self.websocket.send(message)
 
-    async def addJoinedAssister(self, websocket, expectingOffline: Optional[bool] = False) -> bool:
+    async def addJoinedAssister(self, websocket, allow_offline_patients: Optional[bool] = False) -> bool:
         try:
             await self.websocket.send(build_json_response("ASSISTER_JOINED", f"Assister joined successfully to patient {self.patientID}")) # notify the patient that an assister has joined
             # If the websocket send is successful, add the assister to the list of joined assisters
@@ -42,7 +42,7 @@ class Patient:
             # we should still add the assister to the list of joined assisters. On the client-side, this is ensured by the assister remembering a
             # previous reconnection via the friendly name.
 
-            if expectingOffline:
+            if allow_offline_patients:
                 self.joinedAssister.append(websocket)
                 print(f"[debug/patient_object] Added assister {websocket} to patient {self.patientID} (offline); length of joinedAssister: {len(self.joinedAssister)}")
                 return True
@@ -254,6 +254,7 @@ async def handler(websocket) -> None:
 
                 if len(friendlyName) != 2:
                     return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
+                friendlyName = friendlyName[1]  # Can't believe I forgot to add this line, I'm so dumb
 
                 matchedPatient = False
                 for patient in patients:
@@ -263,7 +264,7 @@ async def handler(websocket) -> None:
 
                         # The websocket parameter is the calling assister's websocket object.
 
-                        resp = await patients[patient].addJoinedAssister(websocket=websocket, expectingOffline=True)
+                        resp = await patients[patient].addJoinedAssister(websocket=websocket, allow_offline_patients=True)
 
                         if (resp):
                             await websocket.send(
@@ -280,6 +281,9 @@ async def handler(websocket) -> None:
                                     "Error connecting to offline patient"
                                     )
                                 )
+                if not matchedPatient:
+                    print(f"No existing patient found with friendly name {friendlyName}")
+                    await websocket.send(build_json_response("OFFLINE_CONNECT_FAILED_NONE", f"No existing patient found with friendly name {friendlyName}"))
 
             if actualMessage.startswith("offlinePatientConnect"):
                 # Case for when the websocket is unable to deliver the assister join request to a patient that is offline. In this case,
@@ -383,19 +387,26 @@ async def handler(websocket) -> None:
 
             # [ASSISTER] Register as a device that can receive incoming messages from a patient. (connects to patient too.)
             if actualMessage.startswith("registerAsAssister"):
-                targetPatientId = actualMessage.split(";")
-                if len(targetPatientId) != 2:
+                target_patient_id = actualMessage.split(";")
+                if len(target_patient_id) != 2:
                     return await websocket.send(build_json_response("ERROR_PARSING", "malformatted request"))
                 
-                targetPatientId = int(targetPatientId[1])
+                target_patient_id = int(target_patient_id[1])
 
-                print(f"Matched request to register an assister to patient {targetPatientId}")
-                y = await patients[f'{targetPatientId}'].addJoinedAssister(websocket)
-                print(y)
-                if y:
-                    await websocket.send(build_json_response("ASSISTER_REGISTERED", f"Assister registered successfully to patient {targetPatientId}"))
-                else:
-                    await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", "Error registering assister"))
+                print(f"Matched request to register an assister to patient {target_patient_id}")
+                try:
+                    y = await patients[f'{target_patient_id}'].addJoinedAssister(websocket, allow_offline_patients=True)
+                    print(y)
+                    if y:
+                        await websocket.send(build_json_response("ASSISTER_REGISTERED", f"Assister registered successfully to patient {target_patient_id}"))
+                    else:
+                        await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", "Error registering assister"))
+                except KeyError as e:
+                    print(f"Error registering assister to patient {target_patient_id}: {e}")
+                    await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", f"Error registering assister to non-existent patient {target_patient_id}"))
+                except Exception as e:
+                    print(f"Error registering assister to patient {target_patient_id}: {e}")
+                    await websocket.send(build_json_response("ASSISTER_REGISTER_FAILED", f"Error registering assister to patient {target_patient_id}"))
 
     except websockets.exceptions.ConnectionClosedError as e:
 
@@ -410,6 +421,8 @@ async def handler(websocket) -> None:
                 print(f"Patient {patientID} disconnected unexpectedly with code 1006; not removing from patients list [{current_time}]")
                 patients[patientID].is_disconnected = True
                 patients[patientID].disconnected_at = current_time
+                # message all assisters that the patient has disconnected
+                await patients[patientID].messageAllAssisters("Patient has disconnected, ths is normal for mobile devices...", "PATIENT_DISCONNECTED")
             else:
                 print(f"Removing patient {patientID} from patients list")
                 del patients[patientID]
